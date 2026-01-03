@@ -1,0 +1,14 @@
+{
+  "manifest_version": 2,
+  "name": "Sokker Sumskill",
+  "version": "1.0",
+
+  "description": "Adds Sumskill information",
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.sokker.org/*"],
+      "js": ["sokkerSumskill.js"]
+    }
+  ]
+}
