@@ -7,9 +7,13 @@ function processRows() {
 
         const sumskill = calcSumskill(player);
         const midSumskill = calcMidSumskill(player);
+        const defSumskill = calcDefSumskill(player);
+        const attSumskill = calcAttSumskill(player)
 
         addBadge(el, sumskill, "sumskill", "Sumskill");
         addBadge(el, midSumskill, "midSumskill", "MID Sumskill");
+        addBadge(el, defSumskill, "defSumskill", "DEF Sumskill");
+        addBadge(el, attSumskill, "attSumskill", "ATT Sumskill");
     });
 }
 
@@ -26,6 +30,16 @@ function calcSumskill(player) {
 function calcMidSumskill(player) {
     const s = player.info.skills;
     return s.pace + s.defending + s.technique + s.playmaking + s.passing;
+}
+
+function calcDefSumskill(player) {
+    const s = player.info.skills;
+    return s.pace + s.defending;
+}
+
+function calcAttSumskill(player) {
+    const s = player.info.skills;
+    return s.pace + s.technique + s.striker;
 }
 
 function addBadge(row, value, className, tooltipText) {
