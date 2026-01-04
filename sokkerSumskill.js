@@ -13,13 +13,21 @@ function processRows() {
         const attSumskill = calcAttSumskill(player);
         const keeperSumskill = calcGkSumskill(player);
 
-        addBadge(el, sumskill, "sumskill", "Sumskill");
-        addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill");
-        addBadge(el, midSumskill, "midSumskill", "MID Sumskill");
-        addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill");
-        addBadge(el, defSumskill, "defSumskill", "DEF Sumskill");
-        addBadge(el, attSumskill, "attSumskill", "ATT Sumskill");
-        addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill");
+        addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--action");
+        addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--action");
+        addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--action");
+        addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--action");
+        addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--action");
+        addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--action");
+        addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--action");
+
+        addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--stop");
+        addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--stop");
+        addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--stop");
+        addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--stop");
+        addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--stop");
+        addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--stop");
+        addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--stop");
     });
 }
 
@@ -63,8 +71,8 @@ function calcGkSumskill(player) {
     return s.keeper + s.pace + s.passing;
 }
 
-function addBadge(row, value, className, tooltipText) {
-    const container = row.querySelector(".table__cell--stop .table__cell-wrap");
+function addBadge(row, value, className, tooltipText, target) {
+    const container = row.querySelector(target);
     if (!container) return;
 
     const div = document.createElement("div");
@@ -75,6 +83,18 @@ function addBadge(row, value, className, tooltipText) {
     container.appendChild(div);
 }
 
+/* function addTrainingBadge(row, value, className, tooltipText, target) {
+    const container = row.querySelector();
+    if (!container) return;
+
+    const div = document.createElement("div");
+    div.textContent = value;
+    div.classList.add("badge", className);
+    div.title = tooltipText;   // ← tooltip here
+
+    container.appendChild(div);
+}
+ */
 const observer = new MutationObserver(processRows);
 observer.observe(document.body, { childList: true, subtree: true });
 
