@@ -1,37 +1,46 @@
-document.querySelectorAll("[data-row-id]").forEach( async el => {
-    const sumskill = (JSON.stringify(await getPlayerSumskill(el.dataset.rowId)));
-    displaySumskill(el, sumskill);
-})
+function processRows() {
+    document.querySelectorAll("[data-row-id]").forEach(async el => {
+        if (el.dataset.sumskillAdded) return;
+        el.dataset.sumskillAdded = "true";
 
-async function getPlayerSumskill(id) {
-    const res = await fetch("https://sokker.org/api/player/" + id);
-    const player = await res.json();
-    
-    const stamina = player.info.skills.stamina;
-    const keeper = player.info.skills.keeper;
-    const pace = player.info.skills.pace;
-    const def = player.info.skills.defending;
-    const tech = player.info.skills.technique;
-    const play = player.info.skills.playmaking;
-    const pass = player.info.skills.passing;
-    const striker = player.info.skills.striker;
-    
-    const sumskill = Number(stamina) + Number(keeper) + Number(pace) + Number(def) + Number(tech) + Number(play) + Number(pass) + Number(striker);
-    
-    return sumskill;
+        const player = await fetchPlayer(el.dataset.rowId);
+
+        const sumskill = calcSumskill(player);
+        const midSumskill = calcMidSumskill(player);
+
+        addBadge(el, sumskill, "sumskill", "Sumskill");
+        addBadge(el, midSumskill, "midSumskill", "MID Sumskill");
+    });
 }
 
-function displaySumskill(row, sumskill) {
-    const sumskillContainer = row.querySelector(".table__cell--stop");
-
-    const sumskillDiv = document.createElement("div");
-    sumskillDiv.textContent = sumskill;
-    sumskillDiv.classList.add("sumSkill");
-
-    sumskillContainer.appendChild(sumskillDiv);
+async function fetchPlayer(id) {
+    const res = await fetch(`https://sokker.org/api/player/${id}`);
+    return res.json();
 }
 
+function calcSumskill(player) {
+    const s = player.info.skills;
+    return s.stamina + s.keeper + s.pace + s.defending + s.technique + s.playmaking + s.passing + s.striker;
+}
 
+function calcMidSumskill(player) {
+    const s = player.info.skills;
+    return s.pace + s.defending + s.technique + s.playmaking + s.passing;
+}
 
+function addBadge(row, value, className, tooltipText) {
+    const container = row.querySelector(".table__cell--stop .table__cell-wrap");
+    if (!container) return;
 
-/*     https://sokker.org/api/player/el.dataset.rowId */
+    const div = document.createElement("div");
+    div.textContent = value;
+    div.classList.add("badge", className);
+    div.title = tooltipText;   // ← tooltip here
+
+    container.appendChild(div);
+}
+
+const observer = new MutationObserver(processRows);
+observer.observe(document.body, { childList: true, subtree: true });
+
+processRows();
