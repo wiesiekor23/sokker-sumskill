@@ -8,14 +8,18 @@ function processRows() {
         const sumskill = calcSumskill(player);
         const adjustedSumskill = calcAdjustedSumskill(player).toFixed(1);
         const midSumskill = calcMidSumskill(player);
+        const adjustedMidSumskill = calcAdjustedMidsumskill(player).toFixed(1);
         const defSumskill = calcDefSumskill(player);
         const attSumskill = calcAttSumskill(player);
+        const keeperSumskill = calcGkSumskill(player);
 
         addBadge(el, sumskill, "sumskill", "Sumskill");
         addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill");
         addBadge(el, midSumskill, "midSumskill", "MID Sumskill");
+        addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill");
         addBadge(el, defSumskill, "defSumskill", "DEF Sumskill");
         addBadge(el, attSumskill, "attSumskill", "ATT Sumskill");
+        addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill");
     });
 }
 
@@ -34,6 +38,11 @@ function calcMidSumskill(player) {
     return s.pace + s.defending + s.technique + s.playmaking + s.passing;
 }
 
+function calcAdjustedMidsumskill(player) {
+    const s = player.info.skills;
+    return (s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing) * 0.851;
+}
+
 function calcDefSumskill(player) {
     const s = player.info.skills;
     return s.pace + s.defending;
@@ -47,6 +56,11 @@ function calcAttSumskill(player) {
 function calcAdjustedSumskill(player) {
     const s = player.info.skills;
     return (s.stamina + s.keeper + s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing + s.striker * 1.23) * 0.865;
+}
+
+function calcGkSumskill(player) {
+    const s = player.info.skills;
+    return s.keeper + s.pace + s.passing;
 }
 
 function addBadge(row, value, className, tooltipText) {
