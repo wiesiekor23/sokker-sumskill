@@ -7,7 +7,8 @@
 .sumskill,
 .midSumskill,
 .defSumskill,
-.attSumskill { 
+.attSumskill,
+.adjustedSumskill { 
     display: inline-flex; 
     align-items: center; 
     justify-content: center; 
@@ -33,4 +34,8 @@
 
 .attSumskill {
     background: #8d32b4;
+}
+
+.adjustedSumskill {
+    background: #e82344;
 }

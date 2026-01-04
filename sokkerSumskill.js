@@ -6,11 +6,13 @@ function processRows() {
         const player = await fetchPlayer(el.dataset.rowId);
 
         const sumskill = calcSumskill(player);
+        const adjustedSumskill = calcAdjustedSumskill(player).toFixed(1);
         const midSumskill = calcMidSumskill(player);
         const defSumskill = calcDefSumskill(player);
-        const attSumskill = calcAttSumskill(player)
+        const attSumskill = calcAttSumskill(player);
 
         addBadge(el, sumskill, "sumskill", "Sumskill");
+        addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill");
         addBadge(el, midSumskill, "midSumskill", "MID Sumskill");
         addBadge(el, defSumskill, "defSumskill", "DEF Sumskill");
         addBadge(el, attSumskill, "attSumskill", "ATT Sumskill");
@@ -40,6 +42,11 @@ function calcDefSumskill(player) {
 function calcAttSumskill(player) {
     const s = player.info.skills;
     return s.pace + s.technique + s.striker;
+}
+
+function calcAdjustedSumskill(player) {
+    const s = player.info.skills;
+    return (s.stamina + s.keeper + s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing + s.striker * 1.23) * 0.865;
 }
 
 function addBadge(row, value, className, tooltipText) {
