@@ -13,21 +13,48 @@ function processRows() {
         const attSumskill = calcAttSumskill(player);
         const keeperSumskill = calcGkSumskill(player);
 
-        addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--action");
-        addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--action");
-        addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--action");
-        addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--action");
-        addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--action");
-        addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--action");
-        addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--action");
+        chrome.storage.sync.get([
+            "sumskill",
+            "adjSumskill",
+            "midSumskill",
+            "adjMidSumskill",
+            "defSumskill",
+            "attSumskill",
+            "keeperSumskill"
+        ], settings => {
 
-        addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--stop");
-        addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--stop");
-        addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--stop");
-        addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--stop");
-        addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--stop");
-        addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--stop");
-        addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--stop");
+            if (settings.sumskill) {
+                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--action");
+                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--stop");
+            }
+            if (settings.adjSumskill) {
+                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--action");
+                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--stop");
+            }
+            if (settings.midSumskill) {
+                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--stop");
+                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--action");
+            }
+            if (settings.adjMidSumskill) {
+                addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--action");
+                addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--stop");
+            }
+
+            if (settings.defSumskill) {
+                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--action");
+                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--stop");
+            }
+
+            if (settings.attSumskill) {
+                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--action");
+                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--stop");
+            }
+
+            if (settings.keeperSumskill) {
+                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--action");
+                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--stop");
+            }
+        });
     });
 }
 
@@ -83,18 +110,6 @@ function addBadge(row, value, className, tooltipText, target) {
     container.appendChild(div);
 }
 
-/* function addTrainingBadge(row, value, className, tooltipText, target) {
-    const container = row.querySelector();
-    if (!container) return;
-
-    const div = document.createElement("div");
-    div.textContent = value;
-    div.classList.add("badge", className);
-    div.title = tooltipText;   // ← tooltip here
-
-    container.appendChild(div);
-}
- */
 const observer = new MutationObserver(processRows);
 observer.observe(document.body, { childList: true, subtree: true });
 
