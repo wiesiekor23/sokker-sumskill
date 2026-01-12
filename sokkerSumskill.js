@@ -13,48 +13,81 @@ function processRows() {
         const attSumskill = calcAttSumskill(player);
         const keeperSumskill = calcGkSumskill(player);
 
-        chrome.storage.sync.get([
-            "sumskill",
-            "adjSumskill",
-            "midSumskill",
-            "adjMidSumskill",
-            "defSumskill",
-            "attSumskill",
-            "keeperSumskill"
+        browser.storage.sync.get([
+            "sumskill-training",
+            "adjSumskill-training",
+            "midSumskill-training",
+            "adjMidSumskill-training",
+            "defSumskill-training",
+            "attSumskill-training",
+            "keeperSumskill-training",
+            "sumskill-transfer",
+            "adjSumskill-transfer",
+            "midSumskill-transfer",
+            "adjMidSumskill-transfer",
+            "defSumskill-transfer",
+            "attSumskill-transfer",
+            "keeperSumskill-transfer"
         ], settings => {
 
-            if (settings.sumskill) {
+            // Training Block
+            if (settings["sumskill-training"]) {
                 addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--action");
-                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--stop");
             }
-            if (settings.adjSumskill) {
+
+            if (settings["adjSumskill-training"]) {
                 addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--action");
-                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--stop");
             }
-            if (settings.midSumskill) {
-                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--stop");
+
+            if (settings["midSumskill-training"]) {
                 addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--action");
             }
-            if (settings.adjMidSumskill) {
+
+            if (settings["adjMidSumskill-training"]) {
                 addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--action");
+            }
+
+            if (settings["defSumskill-training"]) {
+                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--action");
+            }
+
+            if (settings["attSumskill-training"]) {
+                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--action");
+            }
+
+            if (settings["keeperSumskill-training"]) {
+                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--action");
+            }
+            //Transfer Block
+            if (settings["sumskill-transfer"]) {
+                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--stop");
+            }
+
+            if (settings["adjSumskill-transfer"]) {
+                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--stop");
+            }
+
+            if (settings["midSumskill-transfer"]) {
+                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--stop");
+            }
+
+            if (settings["adjMidSumskill-transfer"]) {
                 addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--stop");
             }
 
-            if (settings.defSumskill) {
-                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--action");
+            if (settings["defSumskill-transfer"]) {
                 addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--stop");
             }
 
-            if (settings.attSumskill) {
-                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--action");
+            if (settings["attSumskill-transfer"]) {
                 addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--stop");
             }
 
-            if (settings.keeperSumskill) {
-                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--action");
+            if (settings["keeperSumskill-transfer"]) {
                 addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--stop");
             }
         });
+
     });
 }
 
