@@ -1,4 +1,4 @@
-const ids = [
+/* const ids = [
     "sumskill-training",
     "adjSumskill-training",
     "midSumskill-training",
@@ -14,19 +14,38 @@ const ids = [
     "attSumskill-transfer",
     "keeperSumskill-transfer"
 ];
+ */
 
-// Load saved settings
-browser.storage.sync.get(ids, data => {
+function getIds(selector) {
+    const container = document.querySelectorAll(selector)
+    return Array.from(container).map(i => i.id);
+};
+
+const trainingIds = getIds(`#training > label > *`);
+const transferIds = getIds(`#transfers > label > *`)
+
+
+
+function getData(ids) {
+    browser.storage.sync.get(ids).then(data => {
+        ids.forEach(id => {
+            const element = document.querySelector(`#${id}`);
+            element.checked = Boolean(data[id]);
+        })
+    });
+}
+
+getData(trainingIds);
+getData(transferIds);
+
+function setData(ids) {
     ids.forEach(id => {
-        const el = document.getElementById(id);
-        el.checked = data[id] ?? false;
-    });
-});
+        const element = document.querySelector(`#${id}`);
+        element.addEventListener("change", () => {
+            browser.storage.sync.set({ [id]: element.checked });
+        })
+    })
+}
 
-// Save settings when changed
-ids.forEach(id => {
-    const el = document.getElementById(id);
-    el.addEventListener("change", () => {
-        browser.storage.sync.set({ [id]: el.checked });
-    });
-});
+setData(trainingIds);
+setData(transferIds);

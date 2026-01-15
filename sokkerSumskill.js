@@ -2,9 +2,9 @@ function processRows() {
     document.querySelectorAll("[data-row-id]").forEach(async el => {
         if (el.dataset.sumskillAdded) return;
         el.dataset.sumskillAdded = "true";
-
+        
         const player = await fetchPlayer(el.dataset.rowId);
-
+        
         const sumskill = calcSumskill(player);
         const adjustedSumskill = calcAdjustedSumskill(player).toFixed(1);
         const midSumskill = calcMidSumskill(player);
@@ -12,7 +12,7 @@ function processRows() {
         const defSumskill = calcDefSumskill(player);
         const attSumskill = calcAttSumskill(player);
         const keeperSumskill = calcGkSumskill(player);
-
+        
         browser.storage.sync.get([
             "sumskill-training",
             "adjSumskill-training",
@@ -29,65 +29,65 @@ function processRows() {
             "attSumskill-transfer",
             "keeperSumskill-transfer"
         ], settings => {
-
+            
             // Training Block
             if (settings["sumskill-training"]) {
-                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--action");
+                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--effectiveness + .table__cell--action");
             }
-
+            
             if (settings["adjSumskill-training"]) {
-                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--action");
+                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--effectiveness + .table__cell--action");
             }
-
+            
             if (settings["midSumskill-training"]) {
-                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--action");
+                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--effectiveness + .table__cell--action");
             }
-
+            
             if (settings["adjMidSumskill-training"]) {
-                addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--action");
+                addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--effectiveness + .table__cell--action");
             }
-
+            
             if (settings["defSumskill-training"]) {
-                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--action");
+                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--effectiveness + .table__cell--action");
             }
-
+            
             if (settings["attSumskill-training"]) {
-                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--action");
+                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--effectiveness + .table__cell--action");
             }
-
+            
             if (settings["keeperSumskill-training"]) {
-                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--action");
+                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--effectiveness + .table__cell--action");
             }
             //Transfer Block
             if (settings["sumskill-transfer"]) {
-                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--stop");
+                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
             }
-
+            
             if (settings["adjSumskill-transfer"]) {
-                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--stop");
+                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
             }
-
+            
             if (settings["midSumskill-transfer"]) {
-                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--stop");
+                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
             }
-
+            
             if (settings["adjMidSumskill-transfer"]) {
-                addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--stop");
+                addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
             }
-
+            
             if (settings["defSumskill-transfer"]) {
-                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--stop");
+                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
             }
-
+            
             if (settings["attSumskill-transfer"]) {
-                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--stop");
+                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
             }
-
+            
             if (settings["keeperSumskill-transfer"]) {
-                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--stop");
+                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
             }
         });
-
+        
     });
 }
 
@@ -134,16 +134,18 @@ function calcGkSumskill(player) {
 function addBadge(row, value, className, tooltipText, target) {
     const container = row.querySelector(target);
     if (!container) return;
-
+    
     const div = document.createElement("div");
     div.textContent = value;
     div.classList.add("badge", className);
     div.title = tooltipText;   // ← tooltip here
-
+    
     container.appendChild(div);
 }
 
 const observer = new MutationObserver(processRows);
 observer.observe(document.body, { childList: true, subtree: true });
+
+browser.storage.sync.onChanged.addListener(processRows);
 
 processRows();
