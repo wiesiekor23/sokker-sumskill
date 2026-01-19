@@ -1,6 +1,7 @@
 .table__cell--stop,
 .table__cell--action,
-.table__cell--eff  {
+.table__cell--eff,
+.table__cell--copy  {
     display: flex;
     align-items: center;
     gap: 8px;

@@ -25,6 +25,15 @@ browser.runtime.onInstalled.addListener(() => {
     "adjustedMidSumskill-individual": false,
     "defSumskill-individual": false,
     "attSumskill-individual": false,
-    "keeperSumskill-individual": false
-  });
+    "keeperSumskill-individual": false,
+
+    // Squad
+    "sumskill-squad": true,
+    "adjustedSumskill-squad": false,
+    "midSumskill-squad": true,
+    "adjustedMidSumskill-squad": false,
+    "defSumskill-squad": false,
+    "attSumskill-squad": false,
+    "keeperSumskill-squad": false
+  })
 });

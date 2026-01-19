@@ -1,17 +1,17 @@
 async function processRows() {
     const settings = await browser.storage.sync.get();
-   
+
     await processData(`.table-row[data-row-id]`, getSkillsApi, settings);
-    await processData(`.table-row.is-hovered`, getSkillsDom, settings); 
+    await processData(`.table-row.is-hovered`, getSkillsDom, settings);
 }
 
 async function processData(selector, skillsSource, settings) {
     const elements = document.querySelectorAll(selector)
-
+    
     for (const el of elements) {
         if (el.dataset.sumskillAdded) continue;
         el.dataset.sumskillAdded = true;
-
+        console.log(el.dataset.rowId);
         const source = el.dataset.rowId ? el.dataset.rowId : el;
         const skills = await calculateSumskills(source, skillsSource);
         loadSettings(el, skills, settings);
@@ -22,7 +22,8 @@ function loadSettings(el, skills, settings) {
     const selectors = {
         training: `.table__cell--effectiveness + .table__cell--action`,
         transfer: `.table__cell--stop, .table__cell--endDate + .table__cell--action`,
-        individual: `.table__cell--eff`
+        individual: `.table__cell--eff`,
+        squad: `.table__cell--copy, .tabs-nav`
     }
 
     const skillLabels = {
