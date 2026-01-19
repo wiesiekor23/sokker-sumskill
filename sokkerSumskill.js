@@ -1,94 +1,49 @@
-function processRows() {
-    document.querySelectorAll("[data-row-id]").forEach(async el => {
-        if (el.dataset.sumskillAdded) return;
-        el.dataset.sumskillAdded = "true";
-        
-        const player = await fetchPlayer(el.dataset.rowId);
-        
-        const sumskill = calcSumskill(player);
-        const adjustedSumskill = calcAdjustedSumskill(player).toFixed(1);
-        const midSumskill = calcMidSumskill(player);
-        const adjustedMidSumskill = calcAdjustedMidsumskill(player).toFixed(1);
-        const defSumskill = calcDefSumskill(player);
-        const attSumskill = calcAttSumskill(player);
-        const keeperSumskill = calcGkSumskill(player);
-        
-        browser.storage.sync.get([
-            "sumskill-training",
-            "adjSumskill-training",
-            "midSumskill-training",
-            "adjMidSumskill-training",
-            "defSumskill-training",
-            "attSumskill-training",
-            "keeperSumskill-training",
-            "sumskill-transfer",
-            "adjSumskill-transfer",
-            "midSumskill-transfer",
-            "adjMidSumskill-transfer",
-            "defSumskill-transfer",
-            "attSumskill-transfer",
-            "keeperSumskill-transfer"
-        ], settings => {
-            
-            // Training Block
-            if (settings["sumskill-training"]) {
-                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--effectiveness + .table__cell--action");
+async function processRows() {
+    const settings = await browser.storage.sync.get();
+   
+    await processData(`.table-row[data-row-id]`, getSkillsApi, settings);
+    await processData(`.table-row.is-hovered`, getSkillsDom, settings); 
+}
+
+async function processData(selector, skillsSource, settings) {
+    const elements = document.querySelectorAll(selector)
+
+    for (const el of elements) {
+        if (el.dataset.sumskillAdded) continue;
+        el.dataset.sumskillAdded = true;
+
+        const source = el.dataset.rowId ? el.dataset.rowId : el;
+        const skills = await calculateSumskills(source, skillsSource);
+        loadSettings(el, skills, settings);
+    }
+}
+
+function loadSettings(el, skills, settings) {
+    const selectors = {
+        training: `.table__cell--effectiveness + .table__cell--action`,
+        transfer: `.table__cell--stop, .table__cell--endDate + .table__cell--action`,
+        individual: `.table__cell--eff`
+    }
+
+    const skillLabels = {
+        sumskill: "Sumskill",
+        adjustedSumskill: "Adjusted Sumskill",
+        midSumskill: "MID Sumskill",
+        adjustedMidSumskill: "Adjusted MID Sumskill",
+        defSumskill: "DEF Sumskill",
+        attSumskill: "ATT Sumskill",
+        keeperSumskill: "GK Sumskill"
+    }
+
+    for (const prefixKey of Object.keys(skillLabels)) {
+        for (const selector of Object.keys(selectors)) {
+            const storageKey = `${prefixKey}-${selector}`;
+
+            if (settings[storageKey]) {
+                addBadge(el, skills[prefixKey], prefixKey, skillLabels[prefixKey], selectors[selector]);
             }
-            
-            if (settings["adjSumskill-training"]) {
-                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--effectiveness + .table__cell--action");
-            }
-            
-            if (settings["midSumskill-training"]) {
-                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--effectiveness + .table__cell--action");
-            }
-            
-            if (settings["adjMidSumskill-training"]) {
-                addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--effectiveness + .table__cell--action");
-            }
-            
-            if (settings["defSumskill-training"]) {
-                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--effectiveness + .table__cell--action");
-            }
-            
-            if (settings["attSumskill-training"]) {
-                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--effectiveness + .table__cell--action");
-            }
-            
-            if (settings["keeperSumskill-training"]) {
-                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--effectiveness + .table__cell--action");
-            }
-            //Transfer Block
-            if (settings["sumskill-transfer"]) {
-                addBadge(el, sumskill, "sumskill", "Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
-            }
-            
-            if (settings["adjSumskill-transfer"]) {
-                addBadge(el, adjustedSumskill, "adjustedSumskill", "Adjusted Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
-            }
-            
-            if (settings["midSumskill-transfer"]) {
-                addBadge(el, midSumskill, "midSumskill", "MID Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
-            }
-            
-            if (settings["adjMidSumskill-transfer"]) {
-                addBadge(el, adjustedMidSumskill, "adjustedMidSumskill", "Adjusted MID Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
-            }
-            
-            if (settings["defSumskill-transfer"]) {
-                addBadge(el, defSumskill, "defSumskill", "DEF Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
-            }
-            
-            if (settings["attSumskill-transfer"]) {
-                addBadge(el, attSumskill, "attSumskill", "ATT Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
-            }
-            
-            if (settings["keeperSumskill-transfer"]) {
-                addBadge(el, keeperSumskill, "gkSumskill", "GK Sumskill", ".table__cell--stop, .table__cell--endDate + .table__cell--action");
-            }
-        });
-        
-    });
+        }
+    }
 }
 
 async function fetchPlayer(id) {
@@ -96,56 +51,64 @@ async function fetchPlayer(id) {
     return res.json();
 }
 
-function calcSumskill(player) {
-    const s = player.info.skills;
-    return s.stamina + s.keeper + s.pace + s.defending + s.technique + s.playmaking + s.passing + s.striker;
+async function calculateSumskills(source, fetchSkills) {
+    const s = await fetchSkills(source);
+    const sumskill = s.stamina + s.keeper + s.pace + s.defending + s.technique + s.playmaking + s.passing + s.striker;
+    const midSumskill = s.pace + s.defending + s.technique + s.playmaking + s.passing;
+    const adjustedMidSumskill = Number((s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing) * 0.851).toFixed(1);
+    const defSumskill = s.pace + s.defending;
+    const attSumskill = s.pace + s.technique + s.striker;
+    const adjustedSumskill = Number((s.stamina + s.keeper + s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing + s.striker * 1.23) * 0.865).toFixed(1);
+    const keeperSumskill = s.keeper + s.pace + s.passing;
+
+    return {
+        sumskill,
+        adjustedSumskill,
+        midSumskill,
+        adjustedMidSumskill,
+        attSumskill,
+        defSumskill,
+        keeperSumskill
+    };
 }
 
-function calcMidSumskill(player) {
-    const s = player.info.skills;
-    return s.pace + s.defending + s.technique + s.playmaking + s.passing;
+function getSkillsDom(row) {
+    const stamina = Number(row.querySelector(".table__cell--stamina .growth-bg").textContent);
+    const pace = Number(row.querySelector(".table__cell--pace .growth-bg").textContent);
+    const technique = Number(row.querySelector(".table__cell--technique .growth-bg").textContent);
+    const passing = Number(row.querySelector(".table__cell--passing .growth-bg").textContent);
+    const keeper = Number(row.querySelector(".table__cell--keeper .growth-bg").textContent);
+    const defending = Number(row.querySelector(".table__cell--defending .growth-bg").textContent);
+    const playmaking = Number(row.querySelector(".table__cell--playmaking .growth-bg").textContent);
+    const striker = Number(row.querySelector(".table__cell--striker .growth-bg").textContent);
+
+    return { stamina, pace, technique, passing, keeper, defending, playmaking, striker };
 }
 
-function calcAdjustedMidsumskill(player) {
-    const s = player.info.skills;
-    return (s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing) * 0.851;
-}
-
-function calcDefSumskill(player) {
-    const s = player.info.skills;
-    return s.pace + s.defending;
-}
-
-function calcAttSumskill(player) {
-    const s = player.info.skills;
-    return s.pace + s.technique + s.striker;
-}
-
-function calcAdjustedSumskill(player) {
-    const s = player.info.skills;
-    return (s.stamina + s.keeper + s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing + s.striker * 1.23) * 0.865;
-}
-
-function calcGkSumskill(player) {
-    const s = player.info.skills;
-    return s.keeper + s.pace + s.passing;
+async function getSkillsApi(id) {
+    const player = await fetchPlayer(id);
+    const { stamina, pace, technique, passing, keeper, defending, playmaking, striker } = player.info.skills;
+    return { stamina, pace, technique, passing, keeper, defending, playmaking, striker };
 }
 
 function addBadge(row, value, className, tooltipText, target) {
     const container = row.querySelector(target);
     if (!container) return;
-    
+
     const div = document.createElement("div");
     div.textContent = value;
     div.classList.add("badge", className);
     div.title = tooltipText;   // ← tooltip here
-    
+
     container.appendChild(div);
 }
 
-const observer = new MutationObserver(processRows);
-observer.observe(document.body, { childList: true, subtree: true });
+// Observer + debouncer
 
-browser.storage.sync.onChanged.addListener(processRows);
+const observer = new MutationObserver(() => {
+    clearTimeout(window._sumskillTimer);
+    window._sumskillTimer = setTimeout(processRows, 10);
+})
+observer.observe(document.body, { childList: true, subtree: true });
 
 processRows();
