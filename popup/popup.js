@@ -14,7 +14,7 @@ const playerIds = getIds(`#player > label > *`);
 function getData(ids) {
     if (ids.length === 0) return;
 
-    browser.storage.sync.get(ids).then(data => {
+    chrome.storage.sync.get(ids).then(data => {
         ids.forEach(id => {
             const element = document.querySelector(`#${id}`);
              // Ensure value is boolean; default to false if undefined
@@ -37,7 +37,7 @@ function setData(ids) {
         const element = document.querySelector(`#${id}`);
         element.addEventListener("change", () => {
             // Save the new checked state under its ID key
-            browser.storage.sync.set({ [id]: element.checked });
+            chrome.storage.sync.set({ [id]: element.checked });
         })
     })
 }

@@ -24,6 +24,7 @@
     padding-bottom: 1rem;
 }
 
+.badge-container .badge,
 .badge {
     display: inline-flex;
     align-items: center; 
@@ -40,26 +41,32 @@
     letter-spacing: 0.5px; 
 }
 
+.badge-container .midSumskill,
 .midSumskill {
     background: #397deb;
 }
 
+.badge-container .defSumskill,
 .defSumskill {
     background: #6553e2;
 }
 
+.badge-container .attSumskill,
 .attSumskill {
     background: #8d32b4;
 }
 
+.badge-container .adjustedSumskill,
 .adjustedSumskill {
     background: #007054;
 }
 
+.badge-container .adjustedMidSumskill,
 .adjustedMidSumskill {
     background: #007aff;
 }
 
+.badge-container .keeperSumskill,
 .keeperSumskill {
     background: #f16060;
 }

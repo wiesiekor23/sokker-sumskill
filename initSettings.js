@@ -1,6 +1,6 @@
-browser.storage.sync.get(null).then(settings => {
+chrome.storage.sync.get(null).then(settings => {
   if (Object.keys(settings).length === 0) {
-    browser.storage.sync.set({
+    chrome.storage.sync.set({
       "sumskill-training": true,
       "adjustedSumskill-training": false,
       "midSumskill-training": true,

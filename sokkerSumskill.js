@@ -1,5 +1,5 @@
 async function processRows() {
-    const settings = await browser.storage.sync.get(null) || {};
+    const settings = await chrome.storage.sync.get(null) || {};
 
     await processData(`.table-row[data-row-id], .player-list__item, #body-player`, getSkillsApi, settings); // API Fetch
 
@@ -8,17 +8,17 @@ async function processRows() {
 
 async function processData(selector, skillsSource, settings) {
     const elements = document.querySelectorAll(selector);
-    
+
     for (const el of elements) {
         // Prevent double‑processing the same row
         if (el.dataset.sumskillAdded) continue;
         el.dataset.sumskillAdded = true;
-        
+
         let match;
-        
+
         const pid = el.querySelector('a[href*="/player/PID/"]');
         const element = document.querySelector(".navbar-brand");
-        
+
         if (pid) {
             match = pid?.href.match(/\b\w+\b/g)
         } else if (element) {
@@ -28,7 +28,7 @@ async function processData(selector, skillsSource, settings) {
         }
 
         let source;
-        
+
         if (match) {
             const idMatch = match[match.length - 1];
             source = idMatch;
