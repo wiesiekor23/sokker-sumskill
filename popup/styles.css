@@ -1,0 +1,73 @@
+/* Popup styles */
+
+body {
+    background-color: rgb(0, 0, 0);
+    width: 24rem;
+}
+
+.addon-name {
+    text-align: center;
+    color: bisque;
+}
+
+summary.sumskill-btn,
+summary.sumskill-main-btn {
+    width: 23rem;
+    display: inline-block;
+    padding: 0.6em 1em;
+    background-color: #0078d4;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    user-select: none;
+}
+
+/* Remove default triangle marker */
+summary.sumskill-btn::-webkit-details-marker,
+summary.sumskill-btn::-webkit-details-marker {
+    display: none;
+}
+
+/* add your own icon */
+/* summary.sumskill-btn::after {
+    font-size: 0.8em;
+    } */
+    
+    /* hover/focus styles */
+    summary.sumskill-btn:hover {
+        background-color: #005fa3;
+    }
+    
+    
+    summary.sumskill-main-btn {
+        background-color: #043073;
+    }
+    
+    /* hover/focus styles */
+    summary.sumskill-main-btn:hover {
+        background-color: #001448;
+    }
+    
+    input[type="checkbox"] {
+        transform: scale(1.2);
+    }
+    
+    .checkbox-label {
+        font-size: 0.75rem;
+        display: inline-block;
+        width: 100%;
+    }
+    
+    .checkbox-label:hover {
+        background-color: hsl(208, 86%, 80%);
+    }
+    
+    .checkbox-details {
+        background-color: hsl(208, 86%, 88%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-radius: 6px;
+    }
