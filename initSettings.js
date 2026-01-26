@@ -1,6 +1,5 @@
 chrome.storage.sync.get(null).then(settings => {
-  if (Object.keys(settings).length === 0) {
-    chrome.storage.sync.set({
+  const defaults = {
       "sumskill-training": true,
       "adjustedSumskill-training": false,
       "midSumskill-training": true,
@@ -42,7 +41,19 @@ chrome.storage.sync.get(null).then(settings => {
       "adjustedMidSumskill-player": true,
       "defSumskill-player": true,
       "attSumskill-player": true,
-      "keeperSumskill-player": true
-    })
-  }
-})
+      "keeperSumskill-player": true,
+
+      "sumskill-transferSearch": true,
+      "adjustedSumskill-transferSearch": true,
+      "midSumskill-transferSearch": true,
+      "adjustedMidSumskill-transferSearch": true,
+      "defSumskill-transferSearch": true,
+      "attSumskill-transferSearch": true,
+      "keeperSumskill-transferSearch": true
+  };
+
+  const updated = { ...defaults, ...settings };
+
+  chrome.storage.sync.set(updated);
+});
+

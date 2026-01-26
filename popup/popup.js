@@ -9,6 +9,7 @@ const transferIds = getIds(`#transfers > label > *`);
 const individualIds = getIds(`#individual > label > *`);
 const squadIds = getIds(`#squad > label > *`);
 const playerIds = getIds(`#player > label > *`);
+const transferSearch = getIds(`#transferSearch > label > *`);
 
 // Load stored checkbox states
 function getData(ids) {
@@ -28,6 +29,7 @@ getData(transferIds);
 getData(individualIds);
 getData(squadIds);
 getData(playerIds);
+getData(transferSearch);
 
 // Save checkbox state on change
 function setData(ids) {
@@ -47,3 +49,4 @@ setData(trainingIds);
 setData(transferIds);
 setData(squadIds);
 setData(playerIds);
+setData(transferSearch);

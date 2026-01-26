@@ -1,7 +1,7 @@
 async function processRows() {
     const settings = await chrome.storage.sync.get(null) || {};
 
-    await processData(`.table-row[data-row-id], .player-list__item, #body-player`, getSkillsApi, settings); // API Fetch
+    await processData(`.table-row[data-row-id], .player-list__item, #body-player, .panel-body .well`, getSkillsApi, settings); // API Fetch
 
     await processData(`.table-row.is-hovered.has-border`, getSkillsDom, settings); // DOM Fetch
 }
@@ -16,15 +16,17 @@ async function processData(selector, skillsSource, settings) {
 
         let match;
 
-        const pid = el.querySelector('a[href*="/player/PID/"]');
-        const element = document.querySelector(".navbar-brand");
-
-        if (pid) {
+        const pid = el.querySelector('a[href*="player/PID/"]');
+        const element = document.querySelector(".ea");
+        console.log(pid);
+        
+        if (element && pid) {
+/*             const player = element.textContent;
+            match = player.match(/\b\w+\b/g); */
             match = pid?.href.match(/\b\w+\b/g)
-        } else if (element) {
-            const player = element.textContent;
-            match = player.match(/\b\w+\b/g);
             addContainer();
+        } else if (pid) {
+            match = pid?.href.match(/\b\w+\b/g)
         }
 
         let source;
@@ -35,6 +37,7 @@ async function processData(selector, skillsSource, settings) {
         } else {
             source = el;
         }
+
 
         const skills = await calculateSumskills(source, skillsSource);
 
@@ -52,7 +55,8 @@ function loadSettings(el, skills, settings) {
         transfer: `.table__cell--stop, .table__cell--endDate + .table__cell--action`,
         individual: `.table__cell--eff`,
         squad: `.table__cell--copy, .player-box-header`,
-        player: `.badge-container`
+        player: `.badge-container`,
+        transferSearch: `#playerCell`
     };
 
     const skillLabels = {
@@ -72,6 +76,7 @@ function loadSettings(el, skills, settings) {
 
             // Only add badge if user enabled it in settings
             if (settings[storageKey]) {
+                console.log(settings[storageKey]);
                 addBadge(
                     el,
                     skills[prefixKey],
