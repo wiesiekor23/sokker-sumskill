@@ -3,7 +3,8 @@
 .table__cell--stop,
 .table__cell--action,
 .table__cell--eff,
-.table__cell--copy  {
+.table__cell--copy,
+.badge-container {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -24,61 +25,67 @@
     padding-bottom: 1rem;
 }
 
+#playerCell .badge,
 .badge-container .badge,
 .badge {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     display: inline-flex;
-    align-items: center; 
+    align-items: center;
     justify-content: center;
-    padding: 2px 6px; 
-    min-width: 32px;
-    height: 20px; 
+    padding: 2px 6px;
+    min-width: 36px;
+    height: 20px;
     background: #1b9f7d;
-    color: white; 
-    font-size: 12px; 
-    font-weight: 700; 
-    border-radius: 4px; 
-    box-shadow: 0 1px 2px rgba(0,0,0,0.15); 
-    letter-spacing: 0.5px; 
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    letter-spacing: 0.5px;
+    box-sizing: border-box;
 }
 
+#playerCell .midSumskill,
 .badge-container .midSumskill,
 .midSumskill {
     background: #397deb;
 }
 
+#playerCell .defSumskill,
 .badge-container .defSumskill,
 .defSumskill {
     background: #6553e2;
 }
 
+#playerCell .attSumskill,
 .badge-container .attSumskill,
 .attSumskill {
     background: #8d32b4;
 }
 
+#playerCell .adjustedMidSumskill,
 .badge-container .adjustedSumskill,
 .adjustedSumskill {
     background: #007054;
 }
 
+#playerCell .adjustedMidSumskill,
 .badge-container .adjustedMidSumskill,
 .adjustedMidSumskill {
     background: #007aff;
 }
 
+#playerCell .keeperSumskill,
 .badge-container .keeperSumskill,
 .keeperSumskill {
     background: #f16060;
 }
 
- #playerCell .badge {
+#playerCell .badge {
     margin-left: 8px;
 }
 
-#playerCell .sumskill{
+#playerCell .sumskill {
     margin-left: 12px;
 }
-
-/* #playerCell {
-    display: flex;
-} */

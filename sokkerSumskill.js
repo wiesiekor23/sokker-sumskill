@@ -18,7 +18,6 @@ async function processData(selector, skillsSource, settings) {
 
         const pid = el.querySelector('a[href*="player/PID/"]');
         const element = document.querySelector(".ea");
-        console.log(pid);
         
         if (element && pid) {
 /*             const player = element.textContent;
@@ -76,7 +75,6 @@ function loadSettings(el, skills, settings) {
 
             // Only add badge if user enabled it in settings
             if (settings[storageKey]) {
-                console.log(settings[storageKey]);
                 addBadge(
                     el,
                     skills[prefixKey],

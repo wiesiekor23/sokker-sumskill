@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SokkerIQ",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Displays sumskill information in Sokker Manager online game",
   "icons": {
     "16": "icons/SokkerIQ16.png",
