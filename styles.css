@@ -28,8 +28,8 @@
 #playerCell .badge,
 .badge-container .badge,
 .badge {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: Arial, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Roboto, Helvetica, sans-serif;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -38,7 +38,7 @@
     height: 20px;
     background: #1b9f7d;
     color: white;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     border-radius: 4px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
@@ -88,4 +88,16 @@
 
 #playerCell .sumskill {
     margin-left: 12px;
+}
+
+.talentSenior {
+    min-width: 48px;
+    background-color: gold;
+    color: #007aff;
+}
+
+.talentSeniorYS {
+    min-width: 48px;
+    background-color: greenyellow;
+    color: #007aff;
 }

@@ -17,6 +17,7 @@ chrome.storage.sync.get(null).then(settings => {
       "attSumskill-transfer": false,
       "keeperSumskill-transfer": false,
 
+      
       // INDIVIDUAL
       "sumskill-individual": true,
       "adjustedSumskill-individual": false,
@@ -26,7 +27,7 @@ chrome.storage.sync.get(null).then(settings => {
       "attSumskill-individual": false,
       "keeperSumskill-individual": false,
 
-      // Squad
+      // SQUAD
       "sumskill-squad": true,
       "adjustedSumskill-squad": false,
       "midSumskill-squad": true,
@@ -35,6 +36,7 @@ chrome.storage.sync.get(null).then(settings => {
       "attSumskill-squad": false,
       "keeperSumskill-squad": false,
 
+      // PLAYER
       "sumskill-player": true,
       "adjustedSumskill-player": true,
       "midSumskill-player": true,
@@ -43,13 +45,23 @@ chrome.storage.sync.get(null).then(settings => {
       "attSumskill-player": true,
       "keeperSumskill-player": true,
 
+      // TRANSFER SEARCH
       "sumskill-transferSearch": true,
       "adjustedSumskill-transferSearch": true,
       "midSumskill-transferSearch": true,
       "adjustedMidSumskill-transferSearch": true,
       "defSumskill-transferSearch": true,
       "attSumskill-transferSearch": true,
-      "keeperSumskill-transferSearch": true
+      "keeperSumskill-transferSearch": true,
+
+      //TALENT SQUAD
+      "talentSenior-squad": true,
+      "talentSeniorYS-squad": true,
+
+      // TALENT TRAINING
+
+      "talentSenior-training": true,
+      "talentSeniorYS-training": true
   };
 
   const updated = { ...defaults, ...settings };
