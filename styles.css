@@ -91,13 +91,15 @@
 }
 
 .talentSenior {
-    min-width: 48px;
+    min-width: 50px;
     background-color: gold;
-    color: #007aff;
+    color: #11023b;
+    font-size: 10px;
 }
 
 .talentSeniorYS {
-    min-width: 48px;
+    min-width: 50px;
     background-color: greenyellow;
-    color: #007aff;
+    color: #081d35;
+    font-size: 10px;
 }
