@@ -388,13 +388,13 @@ async function calculateMinMaxS(id) {
   const talentGkMin = passPmGkMod / (resultMINgk / gtMod) * 3;
   const talentGkMax = passPmGkMod / (resultMAXgk / gtMod) * 3;
 
-  /*   console.log(`${talentDefMax} - ${talentDefMin}`)
-    console.log(`${talentGkMax} - ${talentGkMin}`)
-    console.log(`${talentPacMax} - ${talentPacMin}`)
-    console.log(`${talentPassMax} - ${talentPassMin}`)
-    console.log(`${talentPmMax} - ${talentPmMin}`)
-    console.log(`${talentStrMax} - ${talentStrMin}`)
-    console.log(`${talentTecMax} - ${talentTecMin}`) */
+/*   console.log(`${talentDefMax} - ${talentDefMin}`)
+  console.log(`${talentGkMax} - ${talentGkMin}`)
+  console.log(`${talentPacMax} - ${talentPacMin}`)
+  console.log(`${talentPassMax} - ${talentPassMin}`)
+  console.log(`${talentPmMax} - ${talentPmMin}`)
+  console.log(`${talentStrMax} - ${talentStrMin}`)
+  console.log(`${talentTecMax} - ${talentTecMin}`) */
 
   function minMaxCheck() {
     let talentMax = 0;
@@ -456,12 +456,15 @@ async function calculateMinMaxS(id) {
 
   return (`${max.toFixed(2)}-${min.toFixed(2)}`);
 };
-
-/* calculateMinMaxJ(39286054).then((min) => {
+ 
+calculateMinMaxJ(39286054).then((min) => {
   console.log(min);
 })
- */
-/* calculateMinMaxS(1).then((min) => {
+calculateMinMaxJ(38914785).then((min) => {
+  console.log(min);
+})
+/* 
+calculateMinMaxS(39286054).then((min) => {
   console.log(min);
 }) */
 
@@ -686,13 +689,27 @@ function calculateTrainingValuesJ(playerData) {
 
     // Second pass: relaxed
     if (!range) {
-      range = computeRangeForMaxT(usedMaxT, 1e-3);
+      range = computeRangeForMaxT(usedMaxT, 1e-1);
+    }
+
+    // Fallback loop: look for last valid week
+    if (!range) {
+      for (let t = usedMaxT - 1; t >= 1; t--) {
+        let r1 = computeRangeForMaxT(t, 1e-8);
+        let r2 = r1 || computeRangeForMaxT(t, 1e-1);
+        if (r2) {
+          usedMaxT = t;
+          range = r2;
+          break;
+        }
+      }
     }
 
     if (!range) {
       results[skill] = { error: `No possible value for ${skill}` };
       continue;
     }
+
 
     const { minS, maxS } = range;
 
@@ -854,7 +871,7 @@ function calculateTrainingValuesS(playerData) {
       }
       return lo < hi;
     }
-    
+
     // computeRangeForMaxT
     function computeRangeForMaxT(maxTLocal, fEps) {
       const startAge = playerData[0].age;
@@ -895,17 +912,34 @@ function calculateTrainingValuesS(playerData) {
       return { minS: minPrecise, maxS: maxPrecise };
     }
 
-    // Try full prefix → fallback
+    // Try full prefix > walk back if needed
     let usedMaxT = N - 1;
     while (usedMaxT >= 1 && playerData[usedMaxT].age > maxAge) usedMaxT--;
 
+    // Strict usedMaxT
     let range = computeRangeForMaxT(usedMaxT, 1e-8);
-    if (!range) range = computeRangeForMaxT(usedMaxT, 1e-3);
+
+    // Relaxed usedMaxT
+    if (!range) range = computeRangeForMaxT(usedMaxT, 1e-1);
+
+    // Fallback: step back in time until valid week - nuclear option
+    if (!range) {
+      for (let t = usedMaxT - 1; t >= 1; t--) {
+        let r1 = computeRangeForMaxT(t, 1e-8);
+        let r2 = r1 || computeRangeForMaxT(t, 1e-1);
+        if (r2) {
+          usedMaxT = t;
+          range = r2;
+          break;
+        }
+      }
+    }
 
     if (!range) {
       results[skill] = { error: `No possible value for ${skill}` };
       continue;
     }
+
 
     const { minS, maxS } = range;
 
