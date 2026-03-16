@@ -68,4 +68,3 @@ chrome.storage.sync.get(null).then(settings => {
 
   chrome.storage.sync.set(updated);
 });
-
