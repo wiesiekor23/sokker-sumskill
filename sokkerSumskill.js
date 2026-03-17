@@ -1,43 +1,24 @@
-/* await browser.storage.local.set({ lastCleanup: Date.now() });
+async function detectBrowserRestart() {
+  const { sessionId } = await browser.storage.local.get("sessionId");
 
-async function dailyCleanup() {
-  const { lastCleanup } = await browser.storage.local.get("lastCleanup");
-  const now = Date.now();
+  // If no sessionId exists, this is a fresh browser session
+  const isRestart = !sessionId;
 
-  // 24 hours = 86,400,000 ms
-  const oneDay = 86400000;
+  // Generate a new session ID for this run
+  const newSessionId = crypto.randomUUID();
+  await browser.storage.local.set({ sessionId: newSessionId });
 
-  if (!lastCleanup || now - lastCleanup > oneDay) {
-    console.log("Running daily cleanup");
-    await browser.storage.local.clear();
-    await browser.storage.local.set({ lastCleanup: now });
-  }
+  return isRestart;
 }
 
-dailyCleanup();
- */
 async function cleanupOnRestart() {
-  const { lastRun } = await browser.storage.local.get("lastRun");
-  const now = Date.now();
+  const isRestart = await detectBrowserRestart();
 
-  // If lastRun doesn't exist, this is the first run ever or after restart
-  if (!lastRun) {
+  if (isRestart) {
     await browser.storage.local.clear();
-    await browser.storage.local.set({ lastRun: now });
-    return;
+    await browser.storage.local.set({ sessionId: crypto.randomUUID() });
   }
-
-  // If the browser was closed long enough, treat it as a restart
-  const restartThreshold = 5 * 60 * 1000; // 5 minutes of inactivity
-
-  if (now - lastRun > restartThreshold) {
-    await browser.storage.local.clear();
-  }
-
-  // Update lastRun to "now"
-  await browser.storage.local.set({ lastRun: now });
 }
-
 cleanupOnRestart();
 
 
@@ -149,13 +130,12 @@ async function calculateValue(source, fetchSkills) {
   const adjustedMidSumskill = Number((s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing) * 0.851).toFixed(1);
   const defSumskill = s.pace + s.defending;
   const attSumskill = s.pace + s.technique + s.striker;
-  const adjustedSumskill = Number(
-    (s.stamina + s.keeper + s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing + s.striker * 1.23) * 0.865).toFixed(1);
-
+  const adjustedSumskill = Number((s.stamina + s.keeper + s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing + s.striker * 1.23) * 0.865).toFixed(1);
   const keeperSumskill = s.keeper + s.pace + s.passing;
 
-  const talentSenior = await calculateMinMaxS(source);
-  const talentSeniorYS = await calculateMinMaxJ(source);
+  const talentSenior = await getTalentCashed(source, calculateMinMaxS, `Senior`);
+
+  const talentSeniorYS = await getTalentCashed(source, calculateMinMaxJ, `Senior YS`);
 
   return {
     sumskill,
@@ -168,6 +148,18 @@ async function calculateValue(source, fetchSkills) {
     talentSenior,
     talentSeniorYS
   };
+}
+
+async function getTalentCashed(id, talentCalc, prefix) {
+  const talent = await browser.storage.local.get(`${prefix} ${id}`);
+  const talentS = talent[`${prefix} ${id}`];
+
+  console.log(talentS);
+  if (talentS) return talentS;
+
+  const talentSenior = await talentCalc(id);
+  browser.storage.local.set({ [`${prefix} ${id}`]: talentSenior });
+  return talentSenior;
 }
 
 // Extracts skills directly from DOM table cells
@@ -191,12 +183,11 @@ async function getSkillsApi(id) {
   const player = storedSkills[id];
 
   if (player) {
-    console.log(`works`);
     const { stamina, pace, technique, passing, keeper, defending, playmaking, striker } = player.info.skills;
     return { stamina, pace, technique, passing, keeper, defending, playmaking, striker };
   }
   const playerFetched = await fetchPlayer(id);
-  await browser.storage.local.set({[id]: playerFetched});
+  await browser.storage.local.set({ [id]: playerFetched });
 
   const { stamina, pace, technique, passing, keeper, defending, playmaking, striker } = playerFetched.info.skills;
   return { stamina, pace, technique, passing, keeper, defending, playmaking, striker };
@@ -268,6 +259,7 @@ async function fetchTrainerSkills() {
   if (trainer[0].skills.striker.value === 16) trainerSkills.push(`STR`);
   if (trainer[0].skills.pace.value === 16) trainerSkills.push(`PAC`);
   if (trainer[0].skills.keeper.value === 16) trainerSkills.push(`GK`);
+  if (trainerSkills.length === 0) trainerSkills.push(`DEF`, `TEC`, `PAS`, `PM`, `STR`, `PAC`, `GK`);
 
   return trainerSkills;
 }
@@ -308,131 +300,131 @@ async function calculateMinMaxJ(id) {
   const training = await calculateTrainingValuesJ(playerArray);
   if (!training) return "0.0/0.0";
 
-// GK
-let resultMINgk;
-let resultMAXgk;
-let talentGkMin;
-let talentGkMax;
+  // GK
+  let resultMINgk;
+  let resultMAXgk;
+  let talentGkMin;
+  let talentGkMax;
 
-if (training.GK === undefined) {
-  resultMINgk = 0.562;
-  resultMAXgk = 1.125;
-  talentGkMin = PASS_PM_GK_MOD / (resultMINgk / GT_MOD) * 3;
-  talentGkMax = PASS_PM_GK_MOD / (resultMAXgk / GT_MOD) * 3;
-} else {
-  resultMINgk = training.GK.valueAtLevel0Min;
-  resultMAXgk = training.GK.valueAtLevel0Max;
-  talentGkMin = PASS_PM_GK_MOD / (resultMINgk / GT_MOD) * 3;
-  talentGkMax = PASS_PM_GK_MOD / (resultMAXgk / GT_MOD) * 3;
-}
+  if (training.GK === undefined) {
+    resultMINgk = 0.562;
+    resultMAXgk = 1.125;
+    talentGkMin = PASS_PM_GK_MOD / (resultMINgk / GT_MOD) * 3;
+    talentGkMax = PASS_PM_GK_MOD / (resultMAXgk / GT_MOD) * 3;
+  } else {
+    resultMINgk = training.GK.valueAtLevel0Min;
+    resultMAXgk = training.GK.valueAtLevel0Max;
+    talentGkMin = PASS_PM_GK_MOD / (resultMINgk / GT_MOD) * 3;
+    talentGkMax = PASS_PM_GK_MOD / (resultMAXgk / GT_MOD) * 3;
+  }
 
-// TEC
-let resultMINtec;
-let resultMAXtec;
-let talentTecMin;
-let talentTecMax;
+  // TEC
+  let resultMINtec;
+  let resultMAXtec;
+  let talentTecMin;
+  let talentTecMax;
 
-if (training.TEC === undefined) {
-  resultMINtec = 0.562;
-  resultMAXtec = 1.125;
-  talentTecMin = TECH_DEF_MOD / (resultMINtec / GT_MOD) * 3;
-  talentTecMax = TECH_DEF_MOD / (resultMAXtec / GT_MOD) * 3;
-} else {
-  resultMINtec = training.TEC.valueAtLevel0Min;
-  resultMAXtec = training.TEC.valueAtLevel0Max;
-  talentTecMin = TECH_DEF_MOD / (resultMINtec / GT_MOD) * 3;
-  talentTecMax = TECH_DEF_MOD / (resultMAXtec / GT_MOD) * 3;
-}
+  if (training.TEC === undefined) {
+    resultMINtec = 0.562;
+    resultMAXtec = 1.125;
+    talentTecMin = TECH_DEF_MOD / (resultMINtec / GT_MOD) * 3;
+    talentTecMax = TECH_DEF_MOD / (resultMAXtec / GT_MOD) * 3;
+  } else {
+    resultMINtec = training.TEC.valueAtLevel0Min;
+    resultMAXtec = training.TEC.valueAtLevel0Max;
+    talentTecMin = TECH_DEF_MOD / (resultMINtec / GT_MOD) * 3;
+    talentTecMax = TECH_DEF_MOD / (resultMAXtec / GT_MOD) * 3;
+  }
 
-// DEF
-let resultMINdef;
-let resultMAXdef;
-let talentDefMin;
-let talentDefMax;
+  // DEF
+  let resultMINdef;
+  let resultMAXdef;
+  let talentDefMin;
+  let talentDefMax;
 
-if (training.DEF === undefined) {
-  resultMINdef = 0.562;
-  resultMAXdef = 1.125;
-  talentDefMin = TECH_DEF_MOD / (resultMINdef / GT_MOD) * 3;
-  talentDefMax = TECH_DEF_MOD / (resultMAXdef / GT_MOD) * 3;
-} else {
-  resultMINdef = training.DEF.valueAtLevel0Min;
-  resultMAXdef = training.DEF.valueAtLevel0Max;
-  talentDefMin = TECH_DEF_MOD / (resultMINdef / GT_MOD) * 3;
-  talentDefMax = TECH_DEF_MOD / (resultMAXdef / GT_MOD) * 3;
-}
+  if (training.DEF === undefined) {
+    resultMINdef = 0.562;
+    resultMAXdef = 1.125;
+    talentDefMin = TECH_DEF_MOD / (resultMINdef / GT_MOD) * 3;
+    talentDefMax = TECH_DEF_MOD / (resultMAXdef / GT_MOD) * 3;
+  } else {
+    resultMINdef = training.DEF.valueAtLevel0Min;
+    resultMAXdef = training.DEF.valueAtLevel0Max;
+    talentDefMin = TECH_DEF_MOD / (resultMINdef / GT_MOD) * 3;
+    talentDefMax = TECH_DEF_MOD / (resultMAXdef / GT_MOD) * 3;
+  }
 
-// PAS
-let resultMINpas;
-let resultMAXpas;
-let talentPassMin;
-let talentPassMax;
+  // PAS
+  let resultMINpas;
+  let resultMAXpas;
+  let talentPassMin;
+  let talentPassMax;
 
-if (training.PAS === undefined) {
-  resultMINpas = 0.562;
-  resultMAXpas = 1.125;
-  talentPassMin = PASS_PM_GK_MOD / (resultMINpas / GT_MOD) * 3;
-  talentPassMax = PASS_PM_GK_MOD / (resultMAXpas / GT_MOD) * 3;
-} else {
-  resultMINpas = training.PAS.valueAtLevel0Min;
-  resultMAXpas = training.PAS.valueAtLevel0Max;
-  talentPassMin = PASS_PM_GK_MOD / (resultMINpas / GT_MOD) * 3;
-  talentPassMax = PASS_PM_GK_MOD / (resultMAXpas / GT_MOD) * 3;
-}
+  if (training.PAS === undefined) {
+    resultMINpas = 0.562;
+    resultMAXpas = 1.125;
+    talentPassMin = PASS_PM_GK_MOD / (resultMINpas / GT_MOD) * 3;
+    talentPassMax = PASS_PM_GK_MOD / (resultMAXpas / GT_MOD) * 3;
+  } else {
+    resultMINpas = training.PAS.valueAtLevel0Min;
+    resultMAXpas = training.PAS.valueAtLevel0Max;
+    talentPassMin = PASS_PM_GK_MOD / (resultMINpas / GT_MOD) * 3;
+    talentPassMax = PASS_PM_GK_MOD / (resultMAXpas / GT_MOD) * 3;
+  }
 
-// PM
-let resultMINpm;
-let resultMAXpm;
-let talentPmMin;
-let talentPmMax;
+  // PM
+  let resultMINpm;
+  let resultMAXpm;
+  let talentPmMin;
+  let talentPmMax;
 
-if (training.PM === undefined) {
-  resultMINpm = 0.562;
-  resultMAXpm = 1.125;
-  talentPmMin = PASS_PM_GK_MOD / (resultMINpm / GT_MOD) * 3;
-  talentPmMax = PASS_PM_GK_MOD / (resultMAXpm / GT_MOD) * 3;
-} else {
-  resultMINpm = training.PM.valueAtLevel0Min;
-  resultMAXpm = training.PM.valueAtLevel0Max;
-  talentPmMin = PASS_PM_GK_MOD / (resultMINpm / GT_MOD) * 3;
-  talentPmMax = PASS_PM_GK_MOD / (resultMAXpm / GT_MOD) * 3;
-}
+  if (training.PM === undefined) {
+    resultMINpm = 0.562;
+    resultMAXpm = 1.125;
+    talentPmMin = PASS_PM_GK_MOD / (resultMINpm / GT_MOD) * 3;
+    talentPmMax = PASS_PM_GK_MOD / (resultMAXpm / GT_MOD) * 3;
+  } else {
+    resultMINpm = training.PM.valueAtLevel0Min;
+    resultMAXpm = training.PM.valueAtLevel0Max;
+    talentPmMin = PASS_PM_GK_MOD / (resultMINpm / GT_MOD) * 3;
+    talentPmMax = PASS_PM_GK_MOD / (resultMAXpm / GT_MOD) * 3;
+  }
 
-// PAC
-let resultMINpac;
-let resultMAXpac;
-let talentPacMin;
-let talentPacMax;
+  // PAC
+  let resultMINpac;
+  let resultMAXpac;
+  let talentPacMin;
+  let talentPacMax;
 
-if (training.PAC === undefined) {
-  resultMINpac = 0.562;
-  resultMAXpac = 1.125;
-  talentPacMin = PAC_MOD / (resultMINpac / GT_MOD) * 3;
-  talentPacMax = PAC_MOD / (resultMAXpac / GT_MOD) * 3;
-} else {
-  resultMINpac = training.PAC.valueAtLevel0Min;
-  resultMAXpac = training.PAC.valueAtLevel0Max;
-  talentPacMin = PAC_MOD / (resultMINpac / GT_MOD) * 3;
-  talentPacMax = PAC_MOD / (resultMAXpac / GT_MOD) * 3;
-}
+  if (training.PAC === undefined) {
+    resultMINpac = 0.562;
+    resultMAXpac = 1.125;
+    talentPacMin = PAC_MOD / (resultMINpac / GT_MOD) * 3;
+    talentPacMax = PAC_MOD / (resultMAXpac / GT_MOD) * 3;
+  } else {
+    resultMINpac = training.PAC.valueAtLevel0Min;
+    resultMAXpac = training.PAC.valueAtLevel0Max;
+    talentPacMin = PAC_MOD / (resultMINpac / GT_MOD) * 3;
+    talentPacMax = PAC_MOD / (resultMAXpac / GT_MOD) * 3;
+  }
 
-// STR
-let resultMINstr;
-let resultMAXstr;
-let talentStrMin;
-let talentStrMax;
+  // STR
+  let resultMINstr;
+  let resultMAXstr;
+  let talentStrMin;
+  let talentStrMax;
 
-if (training.STR === undefined) {
-  resultMINstr = 0.562;
-  resultMAXstr = 1.125;
-  talentStrMin = STR_MOD / (resultMINstr / GT_MOD) * 3;
-  talentStrMax = STR_MOD / (resultMAXstr / GT_MOD) * 3;
-} else {
-  resultMINstr = training.STR.valueAtLevel0Min;
-  resultMAXstr = training.STR.valueAtLevel0Max;
-  talentStrMin = STR_MOD / (resultMINstr / GT_MOD) * 3;
-  talentStrMax = STR_MOD / (resultMAXstr / GT_MOD) * 3;
-}
+  if (training.STR === undefined) {
+    resultMINstr = 0.562;
+    resultMAXstr = 1.125;
+    talentStrMin = STR_MOD / (resultMINstr / GT_MOD) * 3;
+    talentStrMax = STR_MOD / (resultMAXstr / GT_MOD) * 3;
+  } else {
+    resultMINstr = training.STR.valueAtLevel0Min;
+    resultMAXstr = training.STR.valueAtLevel0Max;
+    talentStrMin = STR_MOD / (resultMINstr / GT_MOD) * 3;
+    talentStrMax = STR_MOD / (resultMAXstr / GT_MOD) * 3;
+  }
 
 
   /*   console.log(`JUNIOR`);
@@ -609,13 +601,13 @@ async function calculateMinMaxS(id) {
   }
 
 
-/*   console.log(`SENIOR`);
-  console.log(`${talentPassMax} - ${talentPassMin}`)
-  console.log(`${talentPmMax} - ${talentPmMin}`)
-  console.log(`${talentDefMax} - ${talentDefMin}`)
-  console.log(`${talentTecMax} - ${talentTecMin}`)
-  console.log(`${talentStrMax} - ${talentStrMin}`)
-  console.log(`${talentPacMax} - ${talentPacMin}`) */
+  /*   console.log(`SENIOR`);
+    console.log(`${talentPassMax} - ${talentPassMin}`)
+    console.log(`${talentPmMax} - ${talentPmMin}`)
+    console.log(`${talentDefMax} - ${talentDefMin}`)
+    console.log(`${talentTecMax} - ${talentTecMin}`)
+    console.log(`${talentStrMax} - ${talentStrMin}`)
+    console.log(`${talentPacMax} - ${talentPacMin}`) */
   /*     console.log(`${talentGkMax} - ${talentGkMin}`)  */
 
   function minMaxCheck() {
