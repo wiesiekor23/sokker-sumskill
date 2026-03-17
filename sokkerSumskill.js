@@ -1,27 +1,3 @@
-async function detectBrowserRestart() {
-  const { sessionId } = await browser.storage.local.get("sessionId");
-
-  // If no sessionId exists, this is a fresh browser session
-  const isRestart = !sessionId;
-
-  // Generate a new session ID for this run
-  const newSessionId = crypto.randomUUID();
-  await browser.storage.local.set({ sessionId: newSessionId });
-
-  return isRestart;
-}
-
-async function cleanupOnRestart() {
-  const isRestart = await detectBrowserRestart();
-
-  if (isRestart) {
-    await browser.storage.local.clear();
-    await browser.storage.local.set({ sessionId: crypto.randomUUID() });
-  }
-}
-cleanupOnRestart();
-
-
 async function processRows() {
   const settings = await chrome.storage.sync.get(null) || {};
 
@@ -151,14 +127,13 @@ async function calculateValue(source, fetchSkills) {
 }
 
 async function getTalentCashed(id, talentCalc, prefix) {
-  const talent = await browser.storage.local.get(`${prefix} ${id}`);
+  const talent = await chrome.storage.local.get(`${prefix} ${id}`);
   const talentS = talent[`${prefix} ${id}`];
 
-  console.log(talentS);
   if (talentS) return talentS;
 
   const talentSenior = await talentCalc(id);
-  browser.storage.local.set({ [`${prefix} ${id}`]: talentSenior });
+  chrome.storage.local.set({ [`${prefix} ${id}`]: talentSenior });
   return talentSenior;
 }
 
@@ -179,7 +154,7 @@ function getSkillsDom(row) {
 // Extracts skills from API response
 async function getSkillsApi(id) {
   if (id instanceof HTMLElement) return;
-  const storedSkills = await browser.storage.local.get(id);
+  const storedSkills = await chrome.storage.local.get(id);
   const player = storedSkills[id];
 
   if (player) {
@@ -187,7 +162,7 @@ async function getSkillsApi(id) {
     return { stamina, pace, technique, passing, keeper, defending, playmaking, striker };
   }
   const playerFetched = await fetchPlayer(id);
-  await browser.storage.local.set({ [id]: playerFetched });
+  await chrome.storage.local.set({ [id]: playerFetched });
 
   const { stamina, pace, technique, passing, keeper, defending, playmaking, striker } = playerFetched.info.skills;
   return { stamina, pace, technique, passing, keeper, defending, playmaking, striker };
@@ -287,9 +262,9 @@ async function transformIntoArray(id) {
   return trainingArray;
 }
 
-const TECH_DEF_MOD = 0.15414;
-const PASS_PM_GK_MOD = 0.16864;
-const PAC_MOD = 0.1265;
+const TECH_DEF_MOD = 0.1541;
+const PASS_PM_GK_MOD = 0.1686;
+const PAC_MOD = 0.1267;
 const STR_MOD = 0.141;
 const GT_MOD = 6.666667;
 
@@ -642,14 +617,14 @@ async function calculateMinMaxS(id) {
 }
 
 async function getTrainerSkillsCached() {
-  const { trainerSkills } = await browser.storage.local.get("trainerSkills");
+  const { trainerSkills } = await chrome.storage.local.get("trainerSkills");
 
   if (trainerSkills) {
     return trainerSkills;
   }
 
   const skills = await fetchTrainerSkills();
-  await browser.storage.local.set({ trainerSkills: skills });
+  await chrome.storage.local.set({ trainerSkills: skills });
   return skills;
 }
 
@@ -673,7 +648,7 @@ async function calculateTrainingValuesJ(playerData) {
   const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 1: 'STA', 3: 'PM', 4: 'PAS', 2: `GK` };
 
   // Shared base B defined relative to PAS (ratio 1.0)
-  const RATIO = { PAC: 0.75, TEC: 0.914, PAS: 1.0, DEF: 0.914, PM: 1.0, STR: 0.836, GK: 0.836 };
+  const RATIO = { PAC: 0.75, TEC: 0.914, PAS: 1.0, DEF: 0.914, PM: 1.0, STR: 0.836, GK: 1 };
 
   const AGE_CUMULATIVE = {
     16: 1.0, 17: 0.9469, 18: 0.888003, 19: 0.825764, 20: 0.760995,
@@ -1346,7 +1321,7 @@ async function calculateTrainingValuesS(playerData) {
     return { minB: minPrecise, maxB: maxPrecise };
   }
 
-  // Try strict → relaxed → step-back fallback (mirrors original logic)
+  // Try strict → relaxed → step-back fallback
   let range = findBRange(1e-8) || findBRange(1e-1);
 
   if (!range) {
