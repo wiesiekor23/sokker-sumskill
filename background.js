@@ -55,7 +55,6 @@ async function initializeDefaults() {
     "talentSeniorYS-training": true,
 
     "talentSenior-player": true,
-  /*   "talentSeniorYS-player": true */
   };
 
   // Get all existing sync values
@@ -81,6 +80,7 @@ async function clearCache() {
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === "install") {
     await initializeDefaults();
+    await clearCache();
   }
 });
 
