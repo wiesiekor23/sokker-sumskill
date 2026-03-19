@@ -65,7 +65,7 @@ function loadSettings(el, skills, settings) {
     attSumskill: "ATT Sumskill",
     keeperSumskill: "GK Sumskill",
     talentSenior: "Talent",
-    talentSeniorYS: "Talent (trained from YS)"
+    /* talentSeniorYS: "Talent (trained from YS)" */
   };
 
   // Loop through all skill types and all page contexts
@@ -109,10 +109,9 @@ async function calculateValue(source, fetchSkills) {
   const adjustedSumskill = Number((s.stamina + s.keeper + s.pace * 1.51 + s.defending * 1.23 + s.technique * 1.13 + s.playmaking + s.passing + s.striker * 1.23) * 0.865).toFixed(1);
   const keeperSumskill = s.keeper + s.pace + s.passing;
 
-  const talentSenior = await getTalentCashed(source, calculateMinMaxS, `Senior`);
+  const talentSenior = await getTalentCashed(source, calculateMinMaxJ, `Senior`);
 
-  const talentSeniorYS = await getTalentCashed(source, calculateMinMaxJ, `Senior YS`);
-
+/*   const talentSeniorYS = await getTalentCashed(source, calculateMinMaxJ, `Senior YS`); */
   return {
     sumskill,
     adjustedSumskill,
@@ -122,7 +121,7 @@ async function calculateValue(source, fetchSkills) {
     defSumskill,
     keeperSumskill,
     talentSenior,
-    talentSeniorYS
+   /*  talentSeniorYS */
   };
 }
 
@@ -212,7 +211,6 @@ async function fetchPlayerTraining(id) {
 
 async function fetchTrainerSkills() {
   const url = `https://sokker.org/api/trainer`
-  console.log(`still fetching`);
   const response = await fetch(url);
   const trainersJSON = await response.json();
 
@@ -224,6 +222,10 @@ async function fetchTrainerSkills() {
     if (element.assignment.code === 1) {
       trainer.push(element);
     }
+  }
+
+  if (trainer.length === 0) {
+    return [`DEF`, `TEC`, `PAS`, `PM`, `STR`, `PAC`, `GK`];
   }
 
   const trainerSkills = [];
@@ -246,6 +248,11 @@ async function transformIntoArray(id) {
   const trainingArray = [];
 
   if (trainingJSON === undefined) return;
+  const firstWeek = trainingJSON.reports.length - 1;
+  
+  const teamwork = trainingJSON?.reports?.[firstWeek]?.skills?.teamwork ?? 1;
+  const experience = trainingJSON?.reports?.[firstWeek]?.skills?.experience ?? 1;
+  const tacticalD = trainingJSON?.reports?.[firstWeek]?.skills?.tacticalDiscipline ?? 1;
 
   for (let index = trainingJSON.reports.length - 1; index >= 0; index--) {
     const element = trainingJSON.reports[index];
@@ -259,7 +266,14 @@ async function transformIntoArray(id) {
 
     trainingArray.push({ age, DEF, GK, PAC, PAS, TEC, PM, STA, STR, TR, EFF, KIND, GKtrue });
   }
-  return trainingArray;
+
+  if (teamwork === 0 && experience === 0 && tacticalD === 0) {
+    const playerFromYS = true;
+    return { trainingArray, playerFromYS };
+  } else {
+    const playerFromYS = false;
+    return { trainingArray, playerFromYS };
+  }
 }
 
 const TECH_DEF_MOD = 0.1541;
@@ -269,11 +283,14 @@ const STR_MOD = 0.141;
 const GT_MOD = 6.666667;
 
 async function calculateMinMaxJ(id) {
-  const playerArray = await transformIntoArray(id);
-  if (!Array.isArray(playerArray) || playerArray.length === 0) return "0.0/0.0";
+  const playerArray = (await transformIntoArray(id)).trainingArray;
+  const isYS = (await transformIntoArray(id)).playerFromYS;
 
-  const training = await calculateTrainingValuesJ(playerArray);
-  if (!training) return "0.0/0.0";
+  if (!Array.isArray(playerArray) || playerArray.length === 0) return "3.00-6.00";
+
+  if(isYS) training = await calculateTrainingValuesJ(playerArray);
+  if(!isYS) training = await calculateTrainingValuesS(playerArray);
+  if (!training) return "3.00-6.00";
 
   // GK
   let resultMINgk;
@@ -413,28 +430,41 @@ async function calculateMinMaxJ(id) {
 
   function minMaxCheck() {
     let talentMax = 3;
-    let talentMin = 7;
+    let talentMin = 6;
 
     function checkMAX() {
-      talentMax = Math.max(
-        talentMax,
+      const values = [
         talentTecMax, talentDefMax, talentPassMax,
         talentPmMax, talentPacMax, talentStrMax, talentGkMax
-      );
+      ];
+
+      for (const v of values) {
+        if (v > talentMax) {
+          talentMax = v;
+        }
+      }
+
       return talentMax;
     }
 
     function checkMIN() {
-      talentMin = Math.min(
-        talentMin,
+      const values = [
         talentTecMin, talentDefMin, talentPassMin,
         talentPmMin, talentPacMin, talentStrMin, talentGkMin
-      );
+      ];
+
+      for (const v of values) {
+        if (v < talentMin) {
+          talentMin = v;
+        }
+      }
+
       return talentMin;
     }
 
     return { checkMAX, checkMIN };
   }
+
 
   const min = minMaxCheck().checkMIN();
   const max = minMaxCheck().checkMAX();
@@ -442,12 +472,12 @@ async function calculateMinMaxJ(id) {
   return `${max.toFixed(2)}-${min.toFixed(2)}`;
 }
 
-async function calculateMinMaxS(id) {
+/* async function calculateMinMaxS(id) {
   const playerArray = await transformIntoArray(id);
-  if (!Array.isArray(playerArray) || playerArray.length === 0) return "0.0/0.0";
+  if (!Array.isArray(playerArray) || playerArray.length === 0) return "3.0/6.0";
 
   const training = await calculateTrainingValuesS(playerArray);
-  if (!training) return "0.0/0.0";
+  if (!training) return "3.0/6.0";
 
   // GK
   let resultMINgk;
@@ -576,45 +606,58 @@ async function calculateMinMaxS(id) {
   }
 
 
-  /*   console.log(`SENIOR`);
+     console.log(`SENIOR`);
     console.log(`${talentPassMax} - ${talentPassMin}`)
     console.log(`${talentPmMax} - ${talentPmMin}`)
     console.log(`${talentDefMax} - ${talentDefMin}`)
     console.log(`${talentTecMax} - ${talentTecMin}`)
     console.log(`${talentStrMax} - ${talentStrMin}`)
-    console.log(`${talentPacMax} - ${talentPacMin}`) */
-  /*     console.log(`${talentGkMax} - ${talentGkMin}`)  */
+    console.log(`${talentPacMax} - ${talentPacMin}`) 
+       console.log(`${talentGkMax} - ${talentGkMin}`)
 
   function minMaxCheck() {
     let talentMax = 3;
     let talentMin = 7;
 
     function checkMAX() {
-      talentMax = Math.max(
-        talentMax,
+      const values = [
         talentTecMax, talentDefMax, talentPassMax,
         talentPmMax, talentPacMax, talentStrMax, talentGkMax
-      );
+      ];
+
+      for (const v of values) {
+        if (v > talentMax) {
+          talentMax = v;
+        }
+      }
+
       return talentMax;
     }
 
     function checkMIN() {
-      talentMin = Math.min(
-        talentMin,
+      const values = [
         talentTecMin, talentDefMin, talentPassMin,
         talentPmMin, talentPacMin, talentStrMin, talentGkMin
-      );
+      ];
+
+      for (const v of values) {
+        if (v < talentMin) {
+          talentMin = v;
+        }
+      }
+
       return talentMin;
     }
 
     return { checkMAX, checkMIN };
   }
 
+
   const min = minMaxCheck().checkMIN();
   const max = minMaxCheck().checkMAX();
 
   return `${max.toFixed(2)}-${min.toFixed(2)}`;
-}
+} */
 
 async function getTrainerSkillsCached() {
   const { trainerSkills } = await chrome.storage.local.get("trainerSkills");
@@ -1616,7 +1659,7 @@ async function calculateTrainingValuesS(playerData) {
 
 processRows();
 
-/* // KEEP!!! FAST but not as robust with a lot of data - KEEP!!!
+/*  // KEEP!!! FAST but not as robust with a lot of data - KEEP!!!
 
 function calculateTrainingValuesJ(playerData) {
   const N = playerData.length;

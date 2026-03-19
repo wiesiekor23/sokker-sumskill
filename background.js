@@ -52,7 +52,10 @@ async function initializeDefaults() {
     "talentSeniorYS-squad": true,
 
     "talentSenior-training": true,
-    "talentSeniorYS-training": true
+    "talentSeniorYS-training": true,
+
+    "talentSenior-player": true,
+  /*   "talentSeniorYS-player": true */
   };
 
   // Get all existing sync values
