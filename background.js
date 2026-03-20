@@ -49,10 +49,8 @@ async function initializeDefaults() {
     "keeperSumskill-transferSearch": true,
 
     "talentSenior-squad": true,
-    "talentSeniorYS-squad": true,
 
     "talentSenior-training": true,
-    "talentSeniorYS-training": true,
 
     "talentSenior-player": true,
   };

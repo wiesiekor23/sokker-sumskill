@@ -126,34 +126,38 @@ async function calculateValue(source, fetchSkills) {
 async function getTalentCashed(id, prefix) {
   const talent = await chrome.storage.local.get(`${prefix} ${id}`);
   const talentS = talent[`${prefix} ${id}`];
-
+  
   if (talentS) return talentS;
-
+  
   const playerArray = (await transformIntoArray(id)).trainingArray;
   if (!Array.isArray(playerArray) || playerArray.length === 0) return "3.00-6.00";
-
+  
   const isYS = (await transformIntoArray(id)).playerFromYS;
   let training;
-
+  
   async function returnTalent() {
     const engineOne = await calculateTrainingValuesJ(playerArray);
     const engineTwo = await calculateTrainingValuesJExtr(playerArray);
-    const engineOld = await calculateTrainingValuesJ(playerArray);
+    const engineOld = await calculateTrainingValuesS(playerArray);
     const talentOne = await calculateMinMax(engineOne);
     const talentTwo = await calculateMinMax(engineTwo);
     const talentOld = await calculateMinMax(engineOld);
     if (isYS) {
-      if (talentOne.max < talentTwo.max && talentOne.min > talentTwo.min) {
-        training = `${talentTwo.max.toFixed(2)}-${talentTwo.min.toFixed(2)}`;
-        return training;
-      } else {
-        training = `${talentOne.max.toFixed(2)}-${talentOne.min.toFixed(2)}`;
-        return training;
+      let talentMax = talentOne.max.toFixed(2);
+      let talentMin = talentOne.min.toFixed(2);
+      if (talentOne.max.toFixed(2) <= talentTwo.max.toFixed(2) && talentOne.min.toFixed(2) >= talentTwo.min.toFixed(2)) {
+        talentMax = talentTwo.max;
+        talentMin = talentTwo.min;
       }
+      if (talentMax <= talentOld.max.toFixed(2) && talentMin >= talentOld.min.toFixed(2)) {
+        talentMax = talentOld.max;
+        talentMin = talentOld.min;
+      }
+      training = `${talentMax.toFixed(2)}-${talentMin.toFixed(2)}`;
     } else {
       training = `${talentOld.max.toFixed(2)}-${talentOld.min.toFixed(2)}`;
-      return training;
     }
+    return training;
   }
 
   const talentSenior = await returnTalent();
