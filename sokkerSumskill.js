@@ -126,15 +126,15 @@ async function calculateValue(source, fetchSkills) {
 async function getTalentCashed(id, prefix) {
   const talent = await chrome.storage.local.get(`${prefix} ${id}`);
   const talentS = talent[`${prefix} ${id}`];
-  
+
   if (talentS) return talentS;
-  
+
   const playerArray = (await transformIntoArray(id)).trainingArray;
   if (!Array.isArray(playerArray) || playerArray.length === 0) return "3.00-6.00";
-  
+
   const isYS = (await transformIntoArray(id)).playerFromYS;
   let training;
-  
+
   async function returnTalent() {
     const engineOne = await calculateTrainingValuesJ(playerArray);
     const engineTwo = await calculateTrainingValuesJExtr(playerArray);
@@ -143,15 +143,15 @@ async function getTalentCashed(id, prefix) {
     const talentTwo = await calculateMinMax(engineTwo);
     const talentOld = await calculateMinMax(engineOld);
     if (isYS) {
-      let talentMax = talentOne.max.toFixed(2);
-      let talentMin = talentOne.min.toFixed(2);
-      if (talentOne.max.toFixed(2) <= talentTwo.max.toFixed(2) && talentOne.min.toFixed(2) >= talentTwo.min.toFixed(2)) {
-        talentMax = talentTwo.max;
-        talentMin = talentTwo.min;
+      let talentMax = Number(talentOne.max.toFixed(2));
+      let talentMin = Number(talentOne.min.toFixed(2));
+      if (talentMax <= Number(talentOld.max.toFixed(2)) && talentMin >= Number(talentOld.min.toFixed(2))) {
+        talentMax = Number(talentOld.max);
+        talentMin = Number(talentOld.min);
       }
-      if (talentMax <= talentOld.max.toFixed(2) && talentMin >= talentOld.min.toFixed(2)) {
-        talentMax = talentOld.max;
-        talentMin = talentOld.min;
+      if (Number(talentMax.toFixed(2)) <= Number(talentTwo.max.toFixed(2)) && Number(talentMin.toFixed(2)) >= Number(talentTwo.min.toFixed(2))) {
+        talentMax = Number(talentTwo.max);
+        talentMin = Number(talentTwo.min);
       }
       training = `${talentMax.toFixed(2)}-${talentMin.toFixed(2)}`;
     } else {
@@ -281,6 +281,7 @@ async function transformIntoArray(id) {
 
   const teamwork = trainingJSON?.reports?.[firstWeek]?.skills?.teamwork ?? 1;
   const tacticalD = trainingJSON?.reports?.[firstWeek]?.skills?.tacticalDiscipline ?? 1;
+  const experience = trainingJSON?.reports?.[firstWeek]?.skills?.experience ?? 1;
 
   for (let index = trainingJSON.reports.length - 1; index >= 0; index--) {
     const element = trainingJSON.reports[index];
@@ -295,7 +296,7 @@ async function transformIntoArray(id) {
     trainingArray.push({ age, DEF, GK, PAC, PAS, TEC, PM, STA, STR, TR, EFF, KIND, GKtrue });
   }
 
-  if (teamwork === 0 && tacticalD === 0) {
+  if (teamwork === 0 && tacticalD === 0 && (experience === 0 || experience === 1)) {
     const playerFromYS = true;
     return { trainingArray, playerFromYS };
   } else {
@@ -313,7 +314,7 @@ const GT_MOD = 6.666667;
 async function calculateMinMax(talentEngine) {
 
   const training = talentEngine;
-  if (!training) return "3.00-6.00";
+  if (!training) return {"max": 2.996,"min": 6.004};
 
   // GK
   let resultMINgk;
@@ -515,7 +516,7 @@ async function calculateTrainingValuesJ(playerData) {
   if (N < 2) return { error: "Need at least 2 snapshots" };
 
   const SKILLS = skills;
-  const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 1: 'STA', 3: 'PM', 4: 'PAS', 2: `GK` };
+  const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 3: 'PM', 4: 'PAS', 2: `GK` };
 
   const RATIO = { PAC: 0.75, TEC: 0.914, PAS: 1.0, DEF: 0.914, PM: 1.0, STR: 0.836, GK: 1 };
 
@@ -751,7 +752,7 @@ async function calculateTrainingValuesS(playerData) {
   if (N < 2) return { error: "Need at least 2 snapshots" };
 
   const SKILLS = skills;
-  const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 1: 'STA', 2: 'GK', 3: 'PM', 4: 'PAS' };
+  const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 2: 'GK', 3: 'PM', 4: 'PAS' };
 
   const RATIO = { PAC: 0.75, TEC: 0.914, PAS: 1.0, DEF: 0.914, PM: 1.0, STR: 0.836, GK: 1.0 };
 
@@ -958,9 +959,9 @@ async function calculateTrainingValuesJExtr(playerData) {
   if (N < 2) return { error: "Need at least 2 snapshots" };
 
   const SKILLS = skills;
-  const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 1: 'STA', 3: 'PM', 4: 'PAS', 2: 'GK' };
+  const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 3: 'PM', 4: 'PAS', 2: 'GK' };
 
-  const RATIO = { PAC: 0.75, TEC: 0.914, PAS: 1.0, DEF: 0.914, PM: 1.0, STR: 0.836, GK: 0.836 };
+  const RATIO = { PAC: 0.75, TEC: 0.914, PAS: 1.0, DEF: 0.914, PM: 1.0, STR: 0.836, GK: 1 };
 
   const AGE_CUMULATIVE = {
     16: 1.0, 17: 0.9469, 18: 0.888003, 19: 0.825764, 20: 0.760995,
