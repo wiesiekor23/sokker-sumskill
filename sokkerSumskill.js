@@ -4,6 +4,8 @@ async function processRows() {
   await processData(`.table-row[data-row-id], .player-list__item, #body-player, .panel-body .well`, getSkillsApi, settings); // API Fetch
 
   await processData(`.table-row.is-hovered.has-border`, getSkillsDom, settings); // DOM Fetch
+
+  await processData(`tr[id^="juniorRow"]`, getJuniorCashed, settings);
 }
 
 async function processData(selector, skillsSource, settings) {
@@ -15,15 +17,19 @@ async function processData(selector, skillsSource, settings) {
     el.dataset.sumskillAdded = true;
 
     let match;
+    let juniorMatch;
 
     const pid = el.querySelector('a[href*="player/PID/"]');
     const element = document.querySelector(".ea");
+    const juniorId = el.id.replace(`juniorRow`, ``);
 
     if (element && pid) {
       match = pid?.href.match(/\b\w+\b/g)
       addContainer();
     } else if (pid) {
       match = pid?.href.match(/\b\w+\b/g)
+    } else if (juniorId) {
+      juniorMatch = juniorId;
     }
 
     let source;
@@ -31,12 +37,15 @@ async function processData(selector, skillsSource, settings) {
     if (match) {
       const idMatch = match[match.length - 1];
       source = idMatch;
+    } else if (juniorMatch) {
+      source = juniorMatch;
     } else {
       source = el;
     }
 
-
+    console.log(source)
     const skills = await calculateValue(source, skillsSource);
+    console.log(skills);
 
     // Render badges based on user settings
     loadSettings(el, skills, settings);
@@ -54,6 +63,7 @@ function loadSettings(el, skills, settings) {
     squad: `.table__cell--copy, .player-box-header`,
     player: `.badge-container`,
     transferSearch: `#playerCell`,
+    junior: 'tr[id^="juniorRow"] > td:nth-child(6)'
   };
 
   const skillLabels = {
@@ -65,7 +75,9 @@ function loadSettings(el, skills, settings) {
     attSumskill: "ATT Sumskill",
     keeperSumskill: "GK Sumskill",
     talentSenior: "Talent",
-    /* talentSeniorYS: "Talent (trained from YS)" */
+    talentJunior: `Talent`,
+    weeksToPop: `Weeks to Next Pop`,
+    currentLevel: `Current Estimated Level`
   };
 
   // Loop through all skill types and all page contexts
@@ -98,6 +110,8 @@ async function fetchPlayer(id) {
 // Computes all skill aggregates and weighted metrics
 async function calculateValue(source, fetchSkills) {
   const s = await fetchSkills(source);
+  const { talentJunior, weeksToPop, currentLevel } = s;
+  console.log(s);
 
   if (!s) return;
 
@@ -120,6 +134,9 @@ async function calculateValue(source, fetchSkills) {
     defSumskill,
     keeperSumskill,
     talentSenior,
+    talentJunior,
+    weeksToPop,
+    currentLevel
   };
 }
 
@@ -128,6 +145,8 @@ async function getTalentCashed(id, prefix) {
   const talentS = talent[`${prefix} ${id}`];
 
   if (talentS) return talentS;
+
+  if (id instanceof HTMLElement) return;
 
   const playerArray = (await transformIntoArray(id)).trainingArray;
   if (!Array.isArray(playerArray) || playerArray.length === 0) return "3.00-6.00";
@@ -238,6 +257,15 @@ async function fetchPlayerTraining(id) {
   return response.json();
 }
 
+async function fetchJuniorLevels(id) {
+  if (id instanceof HTMLElement) return;
+
+  const url = `https://sokker.org/api/junior/${id}/graph`;
+  const response = await fetch(url);
+  console.log(response);
+  return response.json();
+}
+
 async function fetchTrainerSkills() {
   const url = `https://sokker.org/api/trainer`
   const response = await fetch(url);
@@ -305,6 +333,21 @@ async function transformIntoArray(id) {
   }
 }
 
+async function getJuniorLevels(id) {
+  const trainingJSON = await fetchJuniorLevels(id);
+  if (trainingJSON === undefined) return;
+
+  const juniorArray = [];
+
+
+  for (let index = 0; index < trainingJSON.values.length; index++) {
+    const element = trainingJSON.values[index];
+
+    juniorArray.push(element.y);
+  }
+  return juniorArray;
+}
+
 const TECH_DEF_MOD = 0.1541;
 const PASS_PM_GK_MOD = 0.1686;
 const PAC_MOD = 0.1267;
@@ -314,7 +357,7 @@ const GT_MOD = 6.666667;
 async function calculateMinMax(talentEngine) {
 
   const training = talentEngine;
-  if (!training) return {"max": 2.996,"min": 6.004};
+  if (!training) return { "max": 2.996, "min": 6.004 };
 
   // GK
   let resultMINgk;
@@ -1296,3 +1339,86 @@ async function calculateTrainingValuesJExtr(playerData) {
 }
 
 processRows();
+
+function calculateJuniorTalent(history) {
+  if (!history || history.length < 2) return 1;
+
+  function approximateT95(df) {
+    if (df <= 0) return Infinity;
+    if (df === 1) return 12.71;
+    if (df === 2) return 4.30;
+    if (df === 3) return 3.18;
+    if (df === 4) return 2.78;
+    if (df === 5) return 2.57;
+    if (df <= 10) return 2.23;
+    if (df <= 20) return 2.09;
+    if (df <= 30) return 2.04;
+    return 1.96;
+  }
+
+  const n = history.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+
+  for (let i = 0; i < n; i++) {
+    const x = i + 1;
+    const y = history[i];
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumX2 += x * x;
+    sumY2 += y * y;
+  }
+
+  const denominator = n * sumX2 - sumX * sumX;
+  if (denominator === 0) return null;
+
+  const slope = (n * sumXY - sumX * sumY) / denominator;
+  const intercept = (sumY - slope * sumX) / n;
+  if (slope <= 0) return null;
+
+  const SSE = sumY2 - intercept * sumY - slope * sumXY;
+  const MSE = SSE / (n - 2);
+  const Sxx = sumX2 - (sumX * sumX) / n;
+  const SE_slope = Math.sqrt(Math.abs(MSE) / Sxx);
+
+  const t = approximateT95(n - 2);
+  const slopeLow = slope - t * SE_slope;
+  const slopeHigh = slope + t * SE_slope;
+
+  const talentMin = slopeLow > 0 ? Math.max(3, Math.round((1 / slopeHigh) * 100) / 100) : 3;
+  const talentMax = Math.max(3, Math.round((1 / slopeLow) * 100) / 100);
+  const talent = Math.max(3, Math.round((1 / slope) * 100) / 100);
+
+  const currentWeek = n;
+  const currentPredicted = Math.round((intercept + slope * currentWeek) * 100) / 100;
+  const nextTarget = Math.floor(currentPredicted) + 1;
+  const weeksToNextPop = Math.round(((nextTarget - currentPredicted) / slope) * 1000) / 1000;
+
+  return {
+    talent,
+    talentMin,
+    talentMax,
+    currentPredictedActualLevel: currentPredicted,
+    estimatedWeeksToNextPop: weeksToNextPop,
+  };
+}
+
+async function getJuniorCashed(id) {
+  const juniorArray = await getJuniorLevels(id);
+  console.log(juniorArray);
+  const juniorTalent = calculateJuniorTalent(juniorArray);
+
+  let currentLevel = juniorTalent.currentPredictedActualLevel;
+  let weeksToPop = Math.ceil(juniorTalent.estimatedWeeksToNextPop);
+  let talentJunior = juniorTalent.talent;
+  const talentMax = juniorTalent.talentMax;
+  const talentMin = juniorTalent.talentMin;
+  
+  if (talentJunior === undefined) talentJunior = `N/A`;
+  if (currentLevel === undefined) currentLevel = `N/A`;
+  if (isNaN(weeksToPop)) weeksToPop = `N/A`;
+  
+  console.log(currentLevel, talentJunior, weeksToPop)
+
+  return { talentJunior, weeksToPop, currentLevel };
+}

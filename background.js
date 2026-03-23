@@ -53,6 +53,10 @@ async function initializeDefaults() {
     "talentSenior-training": true,
 
     "talentSenior-player": true,
+
+    "talentJunior-junior": true,
+    "weeksToPop-junior": true,
+    "currentLevel-junior": true
   };
 
   // Get all existing sync values
