@@ -54,6 +54,8 @@ async function initializeDefaults() {
 
     "talentSenior-player": true,
 
+    "talentSenior-individualPage": true,
+
     "talentJunior-junior": true,
     "weeksToPop-junior": true,
     "currentLevel-junior": true

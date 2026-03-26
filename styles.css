@@ -120,3 +120,14 @@ tr[id^="juniorRow"] > td:nth-child(6) > .badge {
     min-width: 50px;
     font-size: 14px;
 }
+
+.player__name {
+    display: flex;
+    gap: 16px;
+}
+.player__name > .badge {
+    background: inherit;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+}

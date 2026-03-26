@@ -1,7 +1,7 @@
 async function processRows() {
   const settings = await chrome.storage.sync.get(null) || {};
 
-  await processData(`.table-row[data-row-id], .player-list__item, #body-player, .panel-body .well`, getSkillsApi, settings); // API Fetch
+  await processData(`.table-row[data-row-id], .player-list__item, #body-player, .panel-body .well, .player__info`, getSkillsApi, settings); // API Fetch
 
   await processData(`.table-row.is-hovered.has-border`, getSkillsDom, settings); // DOM Fetch
 
@@ -22,7 +22,9 @@ async function processData(selector, skillsSource, settings) {
     const pid = el.querySelector('a[href*="player/PID/"]');
     const element = document.querySelector(".ea");
     const juniorId = el.id.replace(`juniorRow`, ``);
-
+   /*  const playerId = (el.textContent.match(/\d+/)[0]); */
+    
+    
     if (element && pid) {
       match = pid?.href.match(/\b\w+\b/g)
       addContainer();
@@ -31,9 +33,9 @@ async function processData(selector, skillsSource, settings) {
     } else if (juniorId) {
       juniorMatch = juniorId;
     }
-
+    
     let source;
-
+    
     if (match) {
       const idMatch = match[match.length - 1];
       source = idMatch;
@@ -42,10 +44,8 @@ async function processData(selector, skillsSource, settings) {
     } else {
       source = el;
     }
-
-    console.log(source)
+    
     const skills = await calculateValue(source, skillsSource);
-    console.log(skills);
 
     // Render badges based on user settings
     loadSettings(el, skills, settings);
@@ -59,11 +59,12 @@ function loadSettings(el, skills, settings) {
   const selectors = {
     training: `.table__cell--effectiveness + .table__cell--action`,
     transfer: `.table__cell--stop, .table__cell--endDate + .table__cell--action`,
+    individualPage: `.player__name`,
     individual: `.table__cell--eff`,
     squad: `.table__cell--copy, .player-box-header`,
     player: `.badge-container`,
     transferSearch: `#playerCell`,
-    junior: 'tr[id^="juniorRow"] > td:nth-child(6)'
+    junior: 'tr[id^="juniorRow"] > td:nth-child(6)',
   };
 
   const skillLabels = {
@@ -110,8 +111,8 @@ async function fetchPlayer(id) {
 // Computes all skill aggregates and weighted metrics
 async function calculateValue(source, fetchSkills) {
   const s = await fetchSkills(source);
+  if (s === undefined) return;
   const { talentJunior, weeksToPop, currentLevel } = s;
-  console.log(s);
 
   if (!s) return;
 
@@ -262,7 +263,6 @@ async function fetchJuniorLevels(id) {
 
   const url = `https://sokker.org/api/junior/${id}/graph`;
   const response = await fetch(url);
-  console.log(response);
   return response.json();
 }
 
@@ -339,7 +339,6 @@ async function getJuniorLevels(id) {
 
   const juniorArray = [];
 
-
   for (let index = 0; index < trainingJSON.values.length; index++) {
     const element = trainingJSON.values[index];
 
@@ -362,8 +361,12 @@ async function calculateMinMax(talentEngine) {
   // GK
   let resultMINgk;
   let resultMAXgk;
+  let predictedPopMinValueGK;
+  let predictedPopMaxValueGK;
   let talentGkMin;
   let talentGkMax;
+  let predictedPopMinGK;
+  let predictedPopMaxGK;
 
   if (training.GK === undefined) {
     resultMINgk = 0.562;
@@ -380,19 +383,27 @@ async function calculateMinMax(talentEngine) {
   // TEC
   let resultMINtec;
   let resultMAXtec;
+  let predictedPopMinValueTEC;
+  let predictedPopMaxValueTEC;
   let talentTecMin;
   let talentTecMax;
+  let predictedPopMinTEC;
+  let predictedPopMaxTEC;
 
   if (training.TEC === undefined) {
     resultMINtec = 0.562;
     resultMAXtec = 1.125;
     talentTecMin = TECH_DEF_MOD / (resultMINtec / GT_MOD) * 3;
     talentTecMax = TECH_DEF_MOD / (resultMAXtec / GT_MOD) * 3;
+    predictedPopMinTEC = TECH_DEF_MOD / (predictedPopMinValueTEC / GT_MOD) * 3;
+    predictedPopMaxTEC = TECH_DEF_MOD / (predictedPopMaxValueTEC / GT_MOD) * 3;
   } else {
     resultMINtec = training.TEC.valueAtLevel0Min;
     resultMAXtec = training.TEC.valueAtLevel0Max;
     talentTecMin = TECH_DEF_MOD / (resultMINtec / GT_MOD) * 3;
     talentTecMax = TECH_DEF_MOD / (resultMAXtec / GT_MOD) * 3;
+    predictedPopMinTEC = TECH_DEF_MOD / (predictedPopMinValueTEC / GT_MOD) * 3;
+    predictedPopMaxTEC = TECH_DEF_MOD / (predictedPopMaxValueTEC / GT_MOD) * 3;
   }
 
   // DEF
@@ -724,7 +735,6 @@ async function calculateTrainingValuesJ(playerData) {
     return { minB: minPrecise, maxB: maxPrecise };
   }
 
-  // Strict - relaxed - step-back fallback
   let range = findBRange(1e-8) || findBRange(1e-1);
 
   if (!range) {
@@ -774,7 +784,7 @@ async function calculateTrainingValuesJ(playerData) {
     curMin *= powUps;
     curMax *= powUps;
 
-    results[skill] = {
+    const res = {
       valueAtLevel0Min: +minV0.toFixed(6),
       valueAtLevel0Max: +maxV0.toFixed(6),
       currentTrainingValueMin: +curMin.toFixed(6),
@@ -782,6 +792,33 @@ async function calculateTrainingValuesJ(playerData) {
       levelUps: ups,
       usedTrainings: usedMaxT + 1
     };
+
+    // ---------------------------------------------------------
+    // NEW: compute min/max needed for next pop
+    // ---------------------------------------------------------
+    let needMin = Infinity;
+    let needMax = -Infinity;
+
+    for (const f of sd[skill].possible_f) {
+      const nMin = 1 - (f + curMax); // smallest needed
+      const nMax = 1 - (f + curMin); // largest needed
+
+      if (nMax > 0) {
+        needMin = Math.min(needMin, nMin);
+        needMax = Math.max(needMax, nMax);
+      }
+    }
+
+    if (needMin === Infinity) {
+      res.nextPop = { error: "Cannot pop further" };
+    } else {
+      res.nextPop = {
+        minNeeded: +Math.max(0, needMin).toFixed(6),
+        maxNeeded: +Math.max(0, needMax).toFixed(6)
+      };
+    }
+
+    results[skill] = res;
   }
 
   return results;
@@ -1358,6 +1395,120 @@ function calculateJuniorTalent(history) {
 
   const n = history.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+  for (let i = 0; i < n; i++) {
+    const x = i + 1;
+    const y = history[i];
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumX2 += x * x;
+    sumY2 += y * y;
+  }
+
+  const denominator = n * sumX2 - sumX * sumX;
+
+  const slope = (n * sumXY - sumX * sumY) / denominator;
+  const intercept = (sumY - slope * sumX) / n;
+
+  const currentWeek = n;
+  const currentPredicted = Math.round((intercept + slope * currentWeek) * 100) / 100;
+
+  const nextTarget = Math.floor(currentPredicted) + 1;
+
+  let estimatedWeeksToNextPop;
+  if (slope > 0) {
+    const delta = nextTarget - currentPredicted;
+    estimatedWeeksToNextPop = Math.round((delta / slope) * 1000) / 1000;
+  } else {
+    estimatedWeeksToNextPop = 12;
+  }
+
+  const talent = slope > 0
+    ? Math.max(3, Math.round((1 / slope) * 100) / 100)
+    : 12;
+
+  let talentMin, talentMax;
+
+  if (n === 2) {
+    talentMin = 3;
+    talentMax = 12;
+  } else {
+    const SSE = sumY2 - intercept * sumY - slope * sumXY;
+    const MSE = SSE / (n - 2);
+    const Sxx = sumX2 - (sumX * sumX) / n;
+    const SE_slope = Math.sqrt(Math.abs(MSE) / Sxx);
+    const t = approximateT95(n - 2);
+
+    const slopeLow = slope - t * SE_slope;
+    const slopeHigh = slope + t * SE_slope;
+
+    talentMin = slopeLow > 0
+      ? Math.max(3, Math.round((1 / slopeHigh) * 100) / 100)
+      : 3;
+
+    talentMax = slopeLow > 0
+      ? Math.max(3, Math.round((1 / slopeLow) * 100) / 100)
+      : 12;
+  }
+
+  return {
+    talent,
+    talentMin,
+    talentMax,
+    currentPredictedActualLevel: currentPredicted,
+    estimatedWeeksToNextPop,
+  };
+}
+
+async function getJuniorCashed(id) {
+  const juniorArray = await getJuniorLevels(id);
+  const juniorTalent = calculateJuniorTalent(juniorArray);
+
+  let currentLevel = juniorTalent.currentPredictedActualLevel;
+  let weeksToPop = Math.ceil(juniorTalent.estimatedWeeksToNextPop);
+  let talentJunior = juniorTalent.talent;
+  const talentMax = juniorTalent.talentMax;
+  const talentMin = juniorTalent.talentMin;
+  
+  if (talentJunior === undefined) talentJunior = `__`;
+  if (currentLevel === undefined) currentLevel = `__`;
+  if (isNaN(weeksToPop)) weeksToPop = `__`;
+  
+  console.log(currentLevel, talentJunior, weeksToPop);
+
+  return { talentJunior, weeksToPop, currentLevel };
+}
+/* 
+function calculateJuniorTalent(historyRaw) {
+  // 1. Sanitize input
+  const history = (historyRaw || [])
+    .map(v => Number(v))
+    .filter(v => Number.isFinite(v));
+
+  // If nothing valid, return defaults
+  if (history.length === 0) {
+    return {
+      talent: 12,
+      talentMin: 3,
+      talentMax: 12,
+      currentPredictedActualLevel: 0,
+      estimatedWeeksToNextPop: 12,
+    };
+  }
+
+  // If only 1 value, no slope possible
+  if (history.length === 1) {
+    return {
+      talent: 12,
+      talentMin: 3,
+      talentMax: 12,
+      currentPredictedActualLevel: history[0],
+      estimatedWeeksToNextPop: 12,
+    };
+  }
+
+  const n = history.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
 
   for (let i = 0; i < n; i++) {
     const x = i + 1;
@@ -1370,55 +1521,75 @@ function calculateJuniorTalent(history) {
   }
 
   const denominator = n * sumX2 - sumX * sumX;
-  if (denominator === 0) return null;
+  let slope = (n * sumXY - sumX * sumY) / denominator;
+  let intercept = (sumY - slope * sumX) / n;
 
-  const slope = (n * sumXY - sumX * sumY) / denominator;
-  const intercept = (sumY - slope * sumX) / n;
-  if (slope <= 0) return null;
+  // 2. Stabilize slope
+  if (!Number.isFinite(slope)) slope = 0;
+  if (Math.abs(slope) < 1e-9) slope = 0;
 
-  const SSE = sumY2 - intercept * sumY - slope * sumXY;
-  const MSE = SSE / (n - 2);
-  const Sxx = sumX2 - (sumX * sumX) / n;
-  const SE_slope = Math.sqrt(Math.abs(MSE) / Sxx);
+  // 3. Predicted current level
+  let currentPredicted = intercept + slope * n;
+  if (!Number.isFinite(currentPredicted)) currentPredicted = history[n - 1];
 
-  const t = approximateT95(n - 2);
-  const slopeLow = slope - t * SE_slope;
-  const slopeHigh = slope + t * SE_slope;
+  // 4. Next pop estimate
+  let nextTarget = Math.floor(currentPredicted) + 1;
+  let estimatedWeeksToNextPop = 12;
 
-  const talentMin = slopeLow > 0 ? Math.max(3, Math.round((1 / slopeHigh) * 100) / 100) : 3;
-  const talentMax = Math.max(3, Math.round((1 / slopeLow) * 100) / 100);
-  const talent = Math.max(3, Math.round((1 / slope) * 100) / 100);
+  if (slope > 0) {
+    const delta = nextTarget - currentPredicted;
+    estimatedWeeksToNextPop = delta / slope;
+    if (!Number.isFinite(estimatedWeeksToNextPop) || estimatedWeeksToNextPop < 0)
+      estimatedWeeksToNextPop = 12;
+  }
 
-  const currentWeek = n;
-  const currentPredicted = Math.round((intercept + slope * currentWeek) * 100) / 100;
-  const nextTarget = Math.floor(currentPredicted) + 1;
-  const weeksToNextPop = Math.round(((nextTarget - currentPredicted) / slope) * 1000) / 1000;
+  // 5. Talent calculation
+  let talent = slope > 0 ? 1 / slope : 12;
+  if (!Number.isFinite(talent)) talent = 12;
+
+  // Clamp talent
+  talent = Math.min(12, Math.max(3, talent));
+
+  // 6. Confidence interval
+  let talentMin = 3;
+  let talentMax = 12;
+
+  if (n > 2) {
+    let SSE = sumY2 - intercept * sumY - slope * sumXY;
+    if (SSE < 0) SSE = 0; // stabilize
+
+    const MSE = SSE / (n - 2);
+    const Sxx = sumX2 - (sumX * sumX) / n;
+    const SE_slope = Math.sqrt(MSE / Sxx);
+
+    const t = (n <= 3) ? 12.71 :
+              (n <= 4) ? 4.30 :
+              (n <= 5) ? 3.18 :
+              (n <= 6) ? 2.78 :
+              (n <= 7) ? 2.57 :
+              (n <= 12) ? 2.23 :
+              (n <= 22) ? 2.09 :
+              (n <= 32) ? 2.04 : 1.96;
+
+    const slopeLow = slope - t * SE_slope;
+    const slopeHigh = slope + t * SE_slope;
+
+    if (slopeLow > 0) {
+      talentMin = 1 / slopeHigh;
+      talentMax = 1 / slopeLow;
+    }
+
+    // Clamp
+    talentMin = Math.min(12, Math.max(3, talentMin));
+    talentMax = Math.min(12, Math.max(3, talentMax));
+  }
 
   return {
     talent,
     talentMin,
     talentMax,
     currentPredictedActualLevel: currentPredicted,
-    estimatedWeeksToNextPop: weeksToNextPop,
+    estimatedWeeksToNextPop,
   };
 }
-
-async function getJuniorCashed(id) {
-  const juniorArray = await getJuniorLevels(id);
-  console.log(juniorArray);
-  const juniorTalent = calculateJuniorTalent(juniorArray);
-
-  let currentLevel = juniorTalent.currentPredictedActualLevel;
-  let weeksToPop = Math.ceil(juniorTalent.estimatedWeeksToNextPop);
-  let talentJunior = juniorTalent.talent;
-  const talentMax = juniorTalent.talentMax;
-  const talentMin = juniorTalent.talentMin;
-  
-  if (talentJunior === undefined) talentJunior = `N/A`;
-  if (currentLevel === undefined) currentLevel = `N/A`;
-  if (isNaN(weeksToPop)) weeksToPop = `N/A`;
-  
-  console.log(currentLevel, talentJunior, weeksToPop)
-
-  return { talentJunior, weeksToPop, currentLevel };
-}
+ */
