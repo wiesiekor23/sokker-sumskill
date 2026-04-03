@@ -55,6 +55,13 @@ async function initializeDefaults() {
     "talentSenior-player": true,
 
     "talentSenior-individualPage": true,
+    "estimatedTEC-individualPage": true,
+    "estimatedDEF-individualPage": true,
+    "estimatedPAS-individualPage": true,
+    "estimatedPM-individualPage": true,
+    "estimatedSTR-individualPage": true,
+    "estimatedPAC-individualPage": true,
+    "estimatedGK-individualPage": true,
 
     "talentJunior-junior": true,
     "weeksToPop-junior": true,

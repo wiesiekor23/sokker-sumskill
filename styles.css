@@ -90,6 +90,7 @@
     margin-left: 12px;
 }
 
+.player__wrap> .badge.talentSenior,
 .badge-container .talentSenior,
 .talentSenior {
     min-width: 64px;
@@ -98,36 +99,38 @@
     font-size: 11px;
 }
 
-tr[id^="juniorRow"] > td:nth-child(6)  {
+tr[id^="juniorRow"]>td:nth-child(6) {
     display: flex;
 }
 
-tr[id^="juniorRow"] > td:nth-child(6) > .badge.talentJunior {
+tr[id^="juniorRow"]>td:nth-child(6)>.badge.talentJunior {
     margin-left: 32px;
-    background-color: 	#2ECC71;
+    background-color: #2ECC71;
 }
 
-tr[id^="juniorRow"] > td:nth-child(6) > .badge.weeksToPop {
+tr[id^="juniorRow"]>td:nth-child(6)>.badge.weeksToPop {
     background-color: #00BCD4;
 }
 
-tr[id^="juniorRow"] > td:nth-child(6) > .badge.currentLevel {
+tr[id^="juniorRow"]>td:nth-child(6)>.badge.currentLevel {
     background-color: #00E5FF;
 }
 
-tr[id^="juniorRow"] > td:nth-child(6) > .badge {
+tr[id^="juniorRow"]>td:nth-child(6)>.badge {
     margin: 3px;
     min-width: 50px;
     font-size: 14px;
 }
-
-.player__name {
-    display: flex;
-    gap: 16px;
+ 
+.player__wrap>.badge {
+    margin-left: 2px;
+    margin-right: 2px;
+    margin-top: 2px;
+    min-width: 64px;
+    font-size: 10px;
+    background-color: #007054;
 }
-.player__name > .badge {
-    background: inherit;
-    color: inherit;
-    font-family: inherit;
-    font-size: inherit;
+
+.player__wrap {
+    text-align: center !important;
 }
