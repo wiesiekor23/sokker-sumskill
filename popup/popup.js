@@ -15,6 +15,7 @@ const talentTrainingIds = getIds(`#talentTraining > label > *`);
 const talentPlayerIds = getIds(`#talentPlayer > label > *`);
 const talentIndividualIds = getIds(`#talentIndividualPage > label > *`)
 const talentjuniorIds = getIds(`#talentJunior > label > *`);
+const estimatedIndividualIds = getIds(`#estimatedIndividualPage > label > *`);
 
 // Load stored checkbox states
 function getData(ids) {
@@ -40,6 +41,7 @@ getData(talentTrainingIds);
 getData(talentPlayerIds);
 getData(talentIndividualIds);
 getData(talentjuniorIds);
+getData(estimatedIndividualIds);
 
 // Save checkbox state on change
 function setData(ids) {
@@ -65,3 +67,4 @@ setData(talentTrainingIds);
 setData(talentPlayerIds);
 setData(talentIndividualIds);
 setData(talentjuniorIds);
+setData(estimatedIndividualIds);
