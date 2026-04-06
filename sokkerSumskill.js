@@ -175,12 +175,28 @@ async function calculateValue(source, fetchSkills) {
 }
 
 async function getTalentCashed(id) {
-  const talent = await chrome.storage.local.get(`talentSenior ${id}`);
-  const talentS = talent[`talentSenior ${id}`];
-
-  /*   if (talentS) return talentS; */
-
   if (id instanceof HTMLElement) return;
+  const talent = await chrome.storage.local.get(`talentSenior ${id}`);
+  let talentSenior = talent[`talentSenior ${id}`];
+
+
+  const estPAC = await chrome.storage.local.get(`estimatedPAC ${id}`);
+  const estDEF = await chrome.storage.local.get(`estimatedDEF ${id}`);
+  const estPAS = await chrome.storage.local.get(`estimatedPAS ${id}`);
+  const estSTR = await chrome.storage.local.get(`estimatedSTR ${id}`);
+  const estTEC = await chrome.storage.local.get(`estimatedTEC ${id}`);
+  const estPM = await chrome.storage.local.get(`estimatedPM ${id}`);
+  const estGK = await chrome.storage.local.get(`estimatedGK ${id}`);
+
+  let estimatedPAC = estPAC[`estimatedPAC ${id}`];
+  let estimatedDEF = estDEF[`estimatedDEF ${id}`];
+  let estimatedPAS = estPAS[`estimatedPAS ${id}`];
+  let estimatedSTR = estSTR[`estimatedSTR ${id}`];
+  let estimatedTEC = estTEC[`estimatedTEC ${id}`];
+  let estimatedPM = estPM[`estimatedPM ${id}`];
+  let estimatedGK = estGK[`estimatedGK ${id}`];
+
+  if (estimatedDEF) return { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK };
 
   const playerArray = (await transformIntoArray(id)).trainingArray;
   if (!Array.isArray(playerArray) || playerArray.length === 0) return "3.00-6.00";
@@ -188,26 +204,23 @@ async function getTalentCashed(id) {
   const isYS = (await transformIntoArray(id)).playerFromYS;
 
   async function postCollapsePredict(data, skill, altData) {
-    let skillV = await data[skill]
+    let skills = await data
+
+    let skillV = skills[skill];
 
     if (skillV === undefined) skillV = await (altData(playerArray, skill))[skill];
 
     const usedT = await skillV.usedTrainings;
     const totalT = await skillV.totalTrainings;
 
-    console.log(skillV);
     if (usedT === totalT) {
-      console.log(`TRUE`);
       return skillV.trainingsNeeded;
     } else {
       skillV = await (altData(playerArray, skill))[skill];
-      console.log(await skillV.usedTrainings, await skillV.totalTrainings, skill);
       if (await skillV.usedTrainings === await skillV.totalTrainings) {
+        chrome.storage.local.set(`skill ${id}: [skillV.trainingsNeeded]`)
         return skillV.trainingsNeeded;
       } else {
-        console.log(skillV.trainingsNeeded, skill);
-        console.log(skillV.currentTrainingValueMax, skillV.currentTrainingValueMin);
-        console.log(1 - skillV.maxFrac, 1 - skillV.minFrac)
         return `__`;
       }
     }
@@ -228,16 +241,11 @@ async function getTalentCashed(id) {
     let remainingPM;
     let remainingSTR;
     let remainingGK;
-    console.log((calculateTrainingValuesForOneSkill(playerArray, `PAC`)).PAC);
-
-    /*    console.log(engineTwo.PAC.usedTrainings, engineTwo.PAC.totalTrainings);
-       console.log(engineOne.DEF.usedTrainings);
-       console.log(engineOld.DEF.usedTrainings); */
-
 
     if (isYS) {
       let talentMax = Number(talentOne.max.toFixed(2));
       let talentMin = Number(talentOne.min.toFixed(2));
+
       remainingTEC = await postCollapsePredict(engineOne, `TEC`, calculateTrainingValuesForOneSkill);
       remainingPAC = await postCollapsePredict(engineOne, `PAC`, calculateTrainingValuesForOneSkill);
       remainingDEF = await postCollapsePredict(engineOne, `DEF`, calculateTrainingValuesForOneSkill);
@@ -245,16 +253,7 @@ async function getTalentCashed(id) {
       remainingPM = await postCollapsePredict(engineOne, `PM`, calculateTrainingValuesForOneSkill);
       remainingSTR = await postCollapsePredict(engineOne, `STR`, calculateTrainingValuesForOneSkill);
       remainingGK = await postCollapsePredict(engineOne, `GK`, calculateTrainingValuesForOneSkill);
-      console.log(`engineOne`)
-      console.log(remainingPAC)
-      console.log(remainingTEC)
-      console.log(remainingDEF)
-      console.log(remainingPAS)
-      console.log(remainingSTR)
-      console.log(remainingPM)
-      console.log(remainingGK)
-      console.log(`-`);
-      console.log(`${talentMax.toFixed(2)}-${talentMin.toFixed(2)}`);
+
       if (talentMax <= Number(talentOld.max.toFixed(2)) && talentMin >= Number(talentOld.min.toFixed(2))) {
         talentMax = Number(talentOld.max);
         talentMin = Number(talentOld.min);
@@ -263,9 +262,12 @@ async function getTalentCashed(id) {
         talentMax = Number(talentTwo.max);
         talentMin = Number(talentTwo.min);
       }
-      talentSenior = `${talentMax.toFixed(2)}-${talentMin.toFixed(2)}`;
+
+      talentSenior = (`${talentMax.toFixed(2)}-${talentMin.toFixed(2)}`);
+
     } else {
       talentSenior = `${talentOld.max.toFixed(2)}-${talentOld.min.toFixed(2)}`;
+
       remainingTEC = await postCollapsePredict(engineOld, `TEC`, calculateTrainingValuesSForOneSkill);
       remainingPAC = await postCollapsePredict(engineOld, `PAC`, calculateTrainingValuesSForOneSkill);
       remainingDEF = await postCollapsePredict(engineOld, `DEF`, calculateTrainingValuesSForOneSkill);
@@ -273,15 +275,6 @@ async function getTalentCashed(id) {
       remainingPM = await postCollapsePredict(engineOld, `PM`, calculateTrainingValuesSForOneSkill);
       remainingSTR = await postCollapsePredict(engineOld, `STR`, calculateTrainingValuesSForOneSkill);
       remainingGK = await postCollapsePredict(engineOld, `GK`, calculateTrainingValuesSForOneSkill);
-      console.log(`engineOne`)
-      console.log(remainingPAC)
-      console.log(remainingTEC)
-      console.log(remainingDEF)
-      console.log(remainingPAS)
-      console.log(remainingSTR)
-      console.log(remainingPM)
-      console.log(remainingGK)
-      console.log(`-`);
     }
     const estimatedTEC = remainingTEC;
     const estimatedPAC = remainingPAC;
@@ -290,12 +283,20 @@ async function getTalentCashed(id) {
     const estimatedPM = remainingPM;
     const estimatedSTR = remainingSTR;
     const estimatedGK = remainingGK;
+
     return { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK };
   }
 
-  const { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK } = await returnTalent();
+  ({ talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK } = await returnTalent());
 
   chrome.storage.local.set({ [`talentSenior ${id}`]: talentSenior });
+  chrome.storage.local.set({ [`estimatedTEC ${id}`]: estimatedTEC });
+  chrome.storage.local.set({ [`estimatedDEF ${id}`]: estimatedDEF });
+  chrome.storage.local.set({ [`estimatedPAS ${id}`]: estimatedPAS });
+  chrome.storage.local.set({ [`estimatedSTR ${id}`]: estimatedSTR });
+  chrome.storage.local.set({ [`estimatedPAC ${id}`]: estimatedPAC });
+  chrome.storage.local.set({ [`estimatedPM ${id}`]: estimatedPM });
+  chrome.storage.local.set({ [`estimatedGK ${id}`]: estimatedGK });
 
   return { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK };
 }
@@ -439,7 +440,6 @@ async function transformIntoArray(id) {
 
     trainingArray.push({ age, DEF, GK, PAC, PAS, TEC, PM, STA, STR, TR, EFF, KIND, GKtrue });
   }
-  console.log(trainingArray)
 
   if (teamwork === 0 && tacticalD === 0 && (experience === 0 || experience === 1)) {
     const playerFromYS = true;
@@ -606,14 +606,14 @@ async function calculateMinMax(talentEngine) {
   }
 
 
-     console.log(`JUNIOR`);
+  /*   console.log(`JUNIOR`);
     console.log(`${talentPassMax} - ${talentPassMin}`)
     console.log(`${talentPmMax} - ${talentPmMin}`)
     console.log(`${talentDefMax} - ${talentDefMin}`)
     console.log(`${talentTecMax} - ${talentTecMin}`)
     console.log(`${talentStrMax} - ${talentStrMin}`)
     console.log(`${talentPacMax} - ${talentPacMin}`)
-     console.log(`${talentGkMax} - ${talentGkMin}`)
+    console.log(`${talentGkMax} - ${talentGkMin}`) */
 
   function minMaxCheck() {
     let talentMax = 3;
@@ -678,11 +678,8 @@ async function calculateTrainingValuesJ(playerData) {
   const N = playerData.length;
   if (N < 2) return { error: "Need at least 2 snapshots" };
 
-  // ===================================================================
-  // SKILL DECAY CONSTANT (your 0.96 modifier)
-  // This is the decay multiplier applied per skill level-up.
-  // ===================================================================
   const SKILL_DECAY = 0.921;
+  const TRAINER_SLACK = 0.001;
 
   const SKILLS = skills;
   const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 3: 'PM', 4: 'PAS', 2: `GK` };
@@ -732,6 +729,8 @@ async function calculateTrainingValuesJ(playerData) {
       else break;
     }
 
+    while (usedMaxT >= 1 && playerData[usedMaxT][skill] >= 18) usedMaxT--;
+
     const multArr = new Array(N).fill(0.0);
     const upArr = new Array(N).fill(false);
     const forbiddenArr = new Array(N).fill(false);
@@ -759,7 +758,6 @@ async function calculateTrainingValuesJ(playerData) {
       possible_f.push(j * 0.18 - startingN);
     }
 
-    // Replaced 0.92 with SKILL_DECAY
     const S_factor = RATIO[skill] * preFactor * Math.pow(SKILL_DECAY, startingN);
     sd[skill] = { multArr, upArr, forbiddenArr, possible_f, startingN, S_factor, usedMaxT };
   }
@@ -776,17 +774,17 @@ async function calculateTrainingValuesJ(playerData) {
         if (upArr[t]) return false;
         continue;
       }
-      const add = currentD * multArr[t] * effArr[t];
+      const add_max = currentD * multArr[t] * effArr[t];
+      const add_min = add_max * (1 - TRAINER_SLACK);
 
       if (!upArr[t]) {
-        hi = Math.min(hi, 1.0 - add);
+        hi = Math.min(hi, 1.0 - add_min);
         if (lo >= hi) return false;
-        lo += add; hi += add;
+        lo += add_min; hi += add_max;
       } else {
-        lo = Math.max(lo, 1.0 - add);
+        lo = Math.max(lo, 1.0 - add_max);
         if (lo >= hi) return false;
-        lo += add - 1.0; hi += add - 1.0;
-        // Replaced 0.92 with SKILL_DECAY
+        lo += add_min - 1.0; hi += add_max - 1.0;
         currentD *= SKILL_DECAY;
       }
 
@@ -807,15 +805,15 @@ async function calculateTrainingValuesJ(playerData) {
       currentD *= ageFactor[t];
       if (forbiddenArr[t]) continue;
 
-      const add = currentD * multArr[t] * effArr[t];
+      const add_max = currentD * multArr[t] * effArr[t];
+      const add_min = add_max * (1 - TRAINER_SLACK);
 
       if (!upArr[t]) {
-        hi = Math.min(hi, 1.0 - add);
-        lo += add; hi += add;
+        hi = Math.min(hi, 1.0 - add_min);
+        lo += add_min; hi += add_max;
       } else {
-        lo = Math.max(lo, 1.0 - add);
-        lo += add - 1.0; hi += add - 1.0;
-        // Replaced 0.92 with SKILL_DECAY
+        lo = Math.max(lo, 1.0 - add_max);
+        lo += add_min - 1.0; hi += add_max - 1.0;
         currentD *= SKILL_DECAY;
       }
 
@@ -874,7 +872,6 @@ async function calculateTrainingValuesJ(playerData) {
     return { minB: minPrecise, maxB: maxPrecise };
   }
 
-  // Strict - relaxed - step-back fallback
   let range = findBRange(1e-8) || findBRange(1e-1);
   if (!range) {
     const maxUsed = Math.max(...SKILLS.map(s => sd[s].usedMaxT));
@@ -919,7 +916,6 @@ async function calculateTrainingValuesJ(playerData) {
       if (playerData[t][skill] === playerData[t - 1][skill] + 1) ups++;
     }
 
-    // Replaced 0.92 with SKILL_DECAY
     const powUps = Math.pow(SKILL_DECAY, ups);
     curMin *= powUps;
     curMax *= powUps;
@@ -973,12 +969,8 @@ async function calculateTrainingValuesS(playerData) {
   const N = playerData.length;
   if (N < 2) return { error: "Need at least 2 snapshots" };
 
-  // ===================================================================
-  // SKILL DECAY CONSTANT
-  // This is the decay multiplier applied per skill level-up.
-  // (set to 0.921 as requested for this function)
-  // ===================================================================
   const SKILL_DECAY = 0.921;
+  const TRAINER_SLACK = 0.001;
 
   const SKILLS = skills;
   const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 2: 'GK', 3: 'PM', 4: 'PAS' };
@@ -1040,12 +1032,11 @@ async function calculateTrainingValuesS(playerData) {
     }
 
     const startingN = playerData[0][skill];
-
-    // Replaced 0.92 with SKILL_DECAY
     const S_factor = RATIO[skill] * preFactor * Math.pow(SKILL_DECAY, startingN);
 
     let usedMaxT = N - 1;
     while (usedMaxT >= 1 && playerData[usedMaxT].age > maxAge) usedMaxT--;
+    while (usedMaxT >= 1 && playerData[usedMaxT][skill] >= 18) usedMaxT--;
 
     sd[skill] = { effArr, upArr, multArr, forbiddenArr, startingN, S_factor, usedMaxT };
   }
@@ -1061,17 +1052,17 @@ async function calculateTrainingValuesS(playerData) {
         if (upArr[t]) return false;
         continue;
       }
-      const add = currentD * multArr[t] * effArr[t];
+      const add_max = currentD * multArr[t] * effArr[t];
+      const add_min = add_max * (1 - TRAINER_SLACK);
 
       if (!upArr[t]) {
-        hi = Math.min(hi, 1.0 - add);
+        hi = Math.min(hi, 1.0 - add_min);
         if (lo >= hi) return false;
-        lo += add; hi += add;
+        lo += add_min; hi += add_max;
       } else {
-        lo = Math.max(lo, 1.0 - add);
+        lo = Math.max(lo, 1.0 - add_max);
         if (lo >= hi) return false;
-        lo += add - 1.0; hi += add - 1.0;
-        // Replaced 0.92 with SKILL_DECAY
+        lo += add_min - 1.0; hi += add_max - 1.0;
         currentD *= SKILL_DECAY;
       }
 
@@ -1091,15 +1082,15 @@ async function calculateTrainingValuesS(playerData) {
       currentD *= ageFactor[t];
       if (forbiddenArr[t]) continue;
 
-      const add = currentD * multArr[t] * effArr[t];
+      const add_max = currentD * multArr[t] * effArr[t];
+      const add_min = add_max * (1 - TRAINER_SLACK);
 
       if (!upArr[t]) {
-        hi = Math.min(hi, 1.0 - add);
-        lo += add; hi += add;
+        hi = Math.min(hi, 1.0 - add_min);
+        lo += add_min; hi += add_max;
       } else {
-        lo = Math.max(lo, 1.0 - add);
-        lo += add - 1.0; hi += add - 1.0;
-        // Replaced 0.92 with SKILL_DECAY
+        lo = Math.max(lo, 1.0 - add_max);
+        lo += add_min - 1.0; hi += add_max - 1.0;
         currentD *= SKILL_DECAY;
       }
 
@@ -1190,7 +1181,6 @@ async function calculateTrainingValuesS(playerData) {
       if (playerData[t][skill] === playerData[t - 1][skill] + 1) ups++;
     }
 
-    // Replaced 0.92 with SKILL_DECAY
     curMin *= Math.pow(SKILL_DECAY, ups);
     curMax *= Math.pow(SKILL_DECAY, ups);
 
@@ -1223,6 +1213,7 @@ async function calculateTrainingValuesS(playerData) {
       remainingToNextLevelMin: loF === Infinity ? null : +(1 - hiF).toFixed(6),
       remainingToNextLevelMax: loF === Infinity ? null : +(1 - loF).toFixed(6),
       trainingsNeeded: loF === Infinity ? null : `${skill}: ${+((1 - hiF) / curMax).toFixed(1)}-${+((1 - loF) / curMin).toFixed(1)}`,
+      totalTrainings: N,
     };
   }
 
@@ -1236,10 +1227,6 @@ async function calculateTrainingValuesJExtr(playerData) {
   const N = playerData.length;
   if (N < 2) return { error: "Need at least 2 snapshots" };
 
-  // ===================================================================
-  // SKILL DECAY CONSTANT (your 0.96 modifier)
-  // This is the decay multiplier applied per skill level-up.
-  // ===================================================================
   const SKILL_DECAY = 0.921;
 
   const SKILLS = skills;
@@ -1291,6 +1278,8 @@ async function calculateTrainingValuesJExtr(playerData) {
       else break;
     }
 
+    while (usedMaxT >= 1 && playerData[usedMaxT][skill] >= 18) usedMaxT--;
+
     const multArr = new Array(N).fill(0.0);
     const upArr = new Array(N).fill(false);
     const forbiddenArr = new Array(N).fill(false);
@@ -1318,7 +1307,6 @@ async function calculateTrainingValuesJExtr(playerData) {
       possible_f.push(j * 0.18 - startingN);
     }
 
-    // Replaced 0.92 with SKILL_DECAY
     const S_factor = RATIO[skill] * preFactor * Math.pow(SKILL_DECAY, startingN);
 
     const ktArr = new Array(N).fill(0.0);
@@ -1327,7 +1315,6 @@ async function calculateTrainingValuesJExtr(playerData) {
     for (let t = 1; t < N; t++) {
       cumulAge *= ageFactor[t];
       if (!forbiddenArr[t]) {
-        // Replaced 0.92 with SKILL_DECAY
         ktArr[t] = cumulAge * Math.pow(SKILL_DECAY, decayExp) * multArr[t] * effArr[t];
         if (upArr[t]) decayExp++;
       }
@@ -1538,7 +1525,6 @@ async function calculateTrainingValuesJExtr(playerData) {
       if (playerData[t][skill] === playerData[t - 1][skill] + 1) ups++;
     }
 
-    // Replaced 0.92 with SKILL_DECAY
     const powUps = Math.pow(SKILL_DECAY, ups);
     curMin *= powUps;
     curMax *= powUps;
@@ -1595,11 +1581,8 @@ function calculateTrainingValuesForOneSkill(playerData, skill) {
   const N = playerData.length;
   if (N < 2) return { error: "Need at least 2 snapshots" };
 
-  // ===================================================================
-  // SKILL DECAY CONSTANT (your 0.96 modifier)
-  // This is the decay multiplier applied per skill level-up.
-  // ===================================================================
   const SKILL_DECAY = 0.921;
+  const TRAINER_SLACK = 0.001;
 
   const RATIO = { PAC: 0.75, TEC: 0.91666, PAS: 1.0, DEF: 0.91666, PM: 1.0, STR: 0.83333, GK: 1 };
   if (!RATIO[skill]) {
@@ -1653,6 +1636,8 @@ function calculateTrainingValuesForOneSkill(playerData, skill) {
       else break;
     }
 
+    while (usedMaxT >= 1 && playerData[usedMaxT][s] >= 18) usedMaxT--;
+
     const multArr = new Array(N).fill(0.0);
     const upArr = new Array(N).fill(false);
     const forbiddenArr = new Array(N).fill(false);
@@ -1680,7 +1665,6 @@ function calculateTrainingValuesForOneSkill(playerData, skill) {
       possible_f.push(j * 0.18 - startingN);
     }
 
-    // Replaced 0.92 with SKILL_DECAY
     const S_factor = RATIO[s] * preFactor * Math.pow(SKILL_DECAY, startingN);
     sd[s] = { multArr, upArr, forbiddenArr, possible_f, startingN, S_factor, usedMaxT };
   }
@@ -1697,17 +1681,17 @@ function calculateTrainingValuesForOneSkill(playerData, skill) {
         if (upArr[t]) return false;
         continue;
       }
-      const add = currentD * multArr[t] * effArr[t];
+      const add_max = currentD * multArr[t] * effArr[t];
+      const add_min = add_max * (1 - TRAINER_SLACK);
 
       if (!upArr[t]) {
-        hi = Math.min(hi, 1.0 - add);
+        hi = Math.min(hi, 1.0 - add_min);
         if (lo >= hi) return false;
-        lo += add; hi += add;
+        lo += add_min; hi += add_max;
       } else {
-        lo = Math.max(lo, 1.0 - add);
+        lo = Math.max(lo, 1.0 - add_max);
         if (lo >= hi) return false;
-        lo += add - 1.0; hi += add - 1.0;
-        // Replaced 0.92 with SKILL_DECAY
+        lo += add_min - 1.0; hi += add_max - 1.0;
         currentD *= SKILL_DECAY;
       }
 
@@ -1728,15 +1712,15 @@ function calculateTrainingValuesForOneSkill(playerData, skill) {
       currentD *= ageFactor[t];
       if (forbiddenArr[t]) continue;
 
-      const add = currentD * multArr[t] * effArr[t];
+      const add_max = currentD * multArr[t] * effArr[t];
+      const add_min = add_max * (1 - TRAINER_SLACK);
 
       if (!upArr[t]) {
-        hi = Math.min(hi, 1.0 - add);
-        lo += add; hi += add;
+        hi = Math.min(hi, 1.0 - add_min);
+        lo += add_min; hi += add_max;
       } else {
-        lo = Math.max(lo, 1.0 - add);
-        lo += add - 1.0; hi += add - 1.0;
-        // Replaced 0.92 with SKILL_DECAY
+        lo = Math.max(lo, 1.0 - add_max);
+        lo += add_min - 1.0; hi += add_max - 1.0;
         currentD *= SKILL_DECAY;
       }
 
@@ -1836,7 +1820,6 @@ function calculateTrainingValuesForOneSkill(playerData, skill) {
       if (playerData[t][s] === playerData[t - 1][s] + 1) ups++;
     }
 
-    // Replaced 0.92 with SKILL_DECAY
     const powUps = Math.pow(SKILL_DECAY, ups);
     curMin *= powUps;
     curMax *= powUps;
@@ -1889,11 +1872,8 @@ function calculateTrainingValuesSForOneSkill(playerData, skill) {
   const N = playerData.length;
   if (N < 2) return { error: "Need at least 2 snapshots" };
 
-  // ===================================================================
-  // SKILL DECAY CONSTANT (your 0.96 modifier)
-  // This is the decay multiplier applied per skill level-up.
-  // ===================================================================
   const SKILL_DECAY = 0.921;
+  const TRAINER_SLACK = 0.001;
 
   const RATIO = { PAC: 0.75, TEC: 0.91666, PAS: 1.0, DEF: 0.91666, PM: 1.0, STR: 0.83333, GK: 1.0 };
   if (!RATIO[skill]) {
@@ -1963,12 +1943,11 @@ function calculateTrainingValuesSForOneSkill(playerData, skill) {
     }
 
     const startingN = playerData[0][s];
-
-    // Replaced 0.92 with SKILL_DECAY
     const S_factor = RATIO[s] * preFactor * Math.pow(SKILL_DECAY, startingN);
 
     let usedMaxT = N - 1;
     while (usedMaxT >= 1 && playerData[usedMaxT].age > maxAge) usedMaxT--;
+    while (usedMaxT >= 1 && playerData[usedMaxT][s] >= 18) usedMaxT--;
 
     sd[s] = { effArr, upArr, multArr, forbiddenArr, startingN, S_factor, usedMaxT };
   }
@@ -1984,17 +1963,17 @@ function calculateTrainingValuesSForOneSkill(playerData, skill) {
         if (upArr[t]) return false;
         continue;
       }
-      const add = currentD * multArr[t] * effArr[t];
+      const add_max = currentD * multArr[t] * effArr[t];
+      const add_min = add_max * (1 - TRAINER_SLACK);
 
       if (!upArr[t]) {
-        hi = Math.min(hi, 1.0 - add);
+        hi = Math.min(hi, 1.0 - add_min);
         if (lo >= hi) return false;
-        lo += add; hi += add;
+        lo += add_min; hi += add_max;
       } else {
-        lo = Math.max(lo, 1.0 - add);
+        lo = Math.max(lo, 1.0 - add_max);
         if (lo >= hi) return false;
-        lo += add - 1.0; hi += add - 1.0;
-        // Replaced 0.92 with SKILL_DECAY
+        lo += add_min - 1.0; hi += add_max - 1.0;
         currentD *= SKILL_DECAY;
       }
 
@@ -2014,15 +1993,15 @@ function calculateTrainingValuesSForOneSkill(playerData, skill) {
       currentD *= ageFactor[t];
       if (forbiddenArr[t]) continue;
 
-      const add = currentD * multArr[t] * effArr[t];
+      const add_max = currentD * multArr[t] * effArr[t];
+      const add_min = add_max * (1 - TRAINER_SLACK);
 
       if (!upArr[t]) {
-        hi = Math.min(hi, 1.0 - add);
-        lo += add; hi += add;
+        hi = Math.min(hi, 1.0 - add_min);
+        lo += add_min; hi += add_max;
       } else {
-        lo = Math.max(lo, 1.0 - add);
-        lo += add - 1.0; hi += add - 1.0;
-        // Replaced 0.92 with SKILL_DECAY
+        lo = Math.max(lo, 1.0 - add_max);
+        lo += add_min - 1.0; hi += add_max - 1.0;
         currentD *= SKILL_DECAY;
       }
 
@@ -2071,7 +2050,6 @@ function calculateTrainingValuesSForOneSkill(playerData, skill) {
     return { minB: minPrecise, maxB: maxPrecise };
   }
 
-  // Strict → relaxed → step-back fallback
   let range = findBRange(1e-8) || findBRange(1e-1);
   if (!range) {
     const maxUsed = sd[skill].usedMaxT;
@@ -2111,7 +2089,6 @@ function calculateTrainingValuesSForOneSkill(playerData, skill) {
       if (playerData[t][s] === playerData[t - 1][s] + 1) ups++;
     }
 
-    // Replaced 0.92 with SKILL_DECAY
     curMin *= Math.pow(SKILL_DECAY, ups);
     curMax *= Math.pow(SKILL_DECAY, ups);
 
@@ -2124,7 +2101,6 @@ function calculateTrainingValuesSForOneSkill(playerData, skill) {
       if (hi > hiF) hiF = hi;
     }
 
-    // Relaxed fallback
     if (loF === Infinity) {
       for (const b of [minB, maxB]) {
         const S = b * S_factor;
@@ -2207,7 +2183,7 @@ function calculateJuniorTalent(history) {
     ? Math.max(3, Math.round((1 / slope) * 100) / 100)
     : 12;
 
-    if (talent > 12) talent = 12;
+  if (talent > 12) talent = 12;
 
   let talentMin, talentMax;
 
@@ -2243,12 +2219,21 @@ function calculateJuniorTalent(history) {
 }
 
 async function getJuniorCashed(id) {
+  const juniorData = await chrome.storage.local.get(id);
+  const junior = juniorData[id];
+
+  let currentLevel;
+  let talentJunior;
+  let weeksToPop;
+
+  if (junior) return { talentJunior, weeksToPop, currentLevel } = junior;
+
   const juniorArray = await getJuniorLevels(id);
   const juniorTalent = calculateJuniorTalent(juniorArray);
 
-  let currentLevel = juniorTalent.currentPredictedActualLevel;
-  let weeksToPop = Math.ceil(juniorTalent.estimatedWeeksToNextPop);
-  let talentJunior = juniorTalent.talent;
+  currentLevel = juniorTalent.currentPredictedActualLevel;
+  weeksToPop = Math.ceil(juniorTalent.estimatedWeeksToNextPop);
+  talentJunior = juniorTalent.talent;
   const talentMax = juniorTalent.talentMax;
   const talentMin = juniorTalent.talentMin;
 
@@ -2256,7 +2241,369 @@ async function getJuniorCashed(id) {
   if (currentLevel === undefined) currentLevel = `__`;
   if (isNaN(weeksToPop)) weeksToPop = `__`;
 
-  console.log(currentLevel, talentJunior, weeksToPop);
+  const juniorVal = { currentLevel, talentJunior, weeksToPop };
+
+  await chrome.storage.local.set({ [id]: juniorVal });
 
   return { talentJunior, weeksToPop, currentLevel };
 }
+
+/* 
+async function calculateTrainingValuesJExtr(playerData) {
+  const skills = await getTrainerSkillsCached();
+  const N = playerData.length;
+  if (N < 2) return { error: "Need at least 2 snapshots" };
+
+  const SKILL_DECAY = 0.921;
+  const TRAINER_SLACK = 0.001;
+
+  const SKILLS = skills;
+  const DIRECT_MAP = { 8: 'PAC', 5: 'TEC', 6: 'DEF', 7: 'STR', 3: 'PM', 4: 'PAS', 2: 'GK' };
+  const RATIO = { PAC: 0.75, TEC: 0.91666, PAS: 1.0, DEF: 0.91666, PM: 1.0, STR: 0.83333, GK: 1 };
+
+  const AGE_CUMULATIVE = {
+    16: 1.0, 17: 0.9469, 18: 0.888003, 19: 0.825764, 20: 0.760995,
+    21: 0.694578, 22: 0.628532, 23: 0.563964, 24: 0.501087,
+    25: 0.440191, 26: 0.381630, 27: 0.325800, 28: 0.335700,
+    29: 0.285200, 30: 0.240200
+  };
+
+  function getCumulative(age) {
+    if (age <= 16) return 1.0;
+    return AGE_CUMULATIVE[age] || AGE_CUMULATIVE[30];
+  }
+
+  const ageFactor = new Array(N).fill(1.0);
+  for (let t = 1; t < N; t++) {
+    const prevAge = playerData[t - 1].age;
+    const currAge = playerData[t].age;
+    if (currAge > prevAge) {
+      ageFactor[t] = getCumulative(currAge) / getCumulative(prevAge);
+    }
+  }
+
+  const effArr = new Array(N);
+  const kindArr = new Array(N);
+  const trArr = new Array(N);
+  const gkTrueArr = new Array(N);
+  for (let t = 0; t < N; t++) {
+    const row = playerData[t];
+    effArr[t] = (row.EFF / 100) || 1.0;
+    kindArr[t] = row.KIND || 1;
+    trArr[t] = row.TR || 0;
+    gkTrueArr[t] = row.GKtrue || 0;
+  }
+
+  const startAge = playerData[0].age;
+  const preFactor = getCumulative(startAge);
+
+  const sd = {};
+  for (const skill of SKILLS) {
+    const maxAge = skill === 'PAC' ? 28 : 30;
+    let usedMaxT = N - 1;
+    for (let i = N - 1; i >= 0; i--) {
+      if (playerData[i].age > maxAge) usedMaxT = i - 1;
+      else break;
+    }
+
+    while (usedMaxT >= 1 && playerData[usedMaxT][skill] >= 18) usedMaxT--;
+
+    const multArr = new Array(N).fill(0.0);
+    const upArr = new Array(N).fill(false);
+    const forbiddenArr = new Array(N).fill(false);
+
+    for (let t = 1; t < N; t++) {
+      const row = playerData[t];
+      const kind = kindArr[t];
+      const direct = DIRECT_MAP[trArr[t]] || null;
+      upArr[t] = (row[skill] === playerData[t - 1][skill] + 1);
+
+      if (kind === 3 || (skill === 'GK' && gkTrueArr[t] !== 0)) {
+        forbiddenArr[t] = true;
+      } else {
+        let mult = skill === direct ? 1.0 : 0.15;
+        if (kind === 2 && skill === direct) mult = 0.24;
+        multArr[t] = mult;
+      }
+    }
+
+    const startingN = playerData[0][skill];
+    const j_min = Math.ceil(startingN / 0.18);
+    const j_max = Math.floor((startingN + 0.999999) / 0.18);
+    const possible_f = [];
+    for (let j = j_min; j <= j_max; j++) {
+      possible_f.push(j * 0.18 - startingN);
+    }
+
+    const S_factor = RATIO[skill] * preFactor * Math.pow(SKILL_DECAY, startingN);
+
+    const ktArr = new Array(N).fill(0.0);
+    const ktArrMin = new Array(N).fill(0.0);
+    let decayExp = 0;
+    let cumulAge = 1.0;
+    for (let t = 1; t < N; t++) {
+      cumulAge *= ageFactor[t];
+      if (!forbiddenArr[t]) {
+        ktArr[t] = cumulAge * Math.pow(SKILL_DECAY, decayExp) * multArr[t] * effArr[t];
+        ktArrMin[t] = ktArr[t] * (1 - TRAINER_SLACK);
+        if (upArr[t]) decayExp++;
+      }
+    }
+
+    sd[skill] = { upArr, forbiddenArr, possible_f, startingN, S_factor, usedMaxT, ktArr, ktArrMin };
+  }
+
+  const SOLVER_EPS = 1e-9;
+
+  function analyticalSInterval(skill, f0, maxT) {
+    const { ktArr, ktArrMin, upArr, forbiddenArr } = sd[skill];
+    let a = 0, aMin = 0, b = f0;
+    let sLo = 0, sHi = Infinity;
+
+    for (let t = 1; t <= maxT; t++) {
+      if (forbiddenArr[t]) {
+        if (upArr[t]) return null;
+        continue;
+      }
+      const newA = a + ktArr[t];
+      const newAMin = aMin + ktArrMin[t];
+
+      if (!upArr[t]) {
+        const threshold = newAMin > 1e-15 ? (1 - b) / newAMin : Infinity;
+        sHi = Math.min(sHi, threshold + SOLVER_EPS);
+        a = newA; aMin = newAMin;
+      } else {
+        const threshold = newA > 1e-15 ? (1 - b) / newA : Infinity;
+        sLo = Math.max(sLo, threshold - SOLVER_EPS);
+        a = newA; aMin = newAMin;
+        b -= 1;
+      }
+
+      if (b >= 1) return null;
+      if (aMin > 1e-15) {
+        if (b < 0) sLo = Math.max(sLo, -b / a - SOLVER_EPS);
+        sHi = Math.min(sHi, (1 - b) / aMin + SOLVER_EPS);
+      } else if (b < -SOLVER_EPS) {
+        return null;
+      }
+      if (sLo >= sHi) return null;
+    }
+    return sLo < sHi ? [sLo, sHi] : null;
+  }
+
+  function mergeIntervals(intervals) {
+    if (!intervals.length) return [];
+    intervals.sort((x, y) => x[0] - y[0]);
+    const out = [[...intervals[0]]];
+    for (let i = 1; i < intervals.length; i++) {
+      const last = out[out.length - 1];
+      if (intervals[i][0] <= last[1]) last[1] = Math.max(last[1], intervals[i][1]);
+      else out.push([...intervals[i]]);
+    }
+    return out;
+  }
+
+  function intersectIntervalLists(A, B) {
+    const result = [];
+    let i = 0, j = 0;
+    while (i < A.length && j < B.length) {
+      const lo = Math.max(A[i][0], B[j][0]);
+      const hi = Math.min(A[i][1], B[j][1]);
+      if (lo < hi) result.push([lo, hi]);
+      if (A[i][1] < B[j][1]) i++; else j++;
+    }
+    return result;
+  }
+
+  const B_LOW = 0.562;
+  const B_HIGH = 1.125;
+
+  function findBRangeAnalytical() {
+    let validB = [[B_LOW, B_HIGH]];
+    for (const skill of SKILLS) {
+      const { S_factor, possible_f, usedMaxT } = sd[skill];
+      if (usedMaxT < 1) continue;
+      const skillIntervals = [];
+      for (const f0 of possible_f) {
+        const si = analyticalSInterval(skill, f0, usedMaxT);
+        if (!si) continue;
+        const bLo = Math.max(B_LOW, si[0] / S_factor);
+        const bHi = Math.min(B_HIGH, si[1] / S_factor);
+        if (bLo < bHi) skillIntervals.push([bLo, bHi]);
+      }
+      if (!skillIntervals.length) return null;
+      validB = intersectIntervalLists(validB, mergeIntervals(skillIntervals));
+      if (!validB.length) return null;
+    }
+    return { minB: validB[0][0], maxB: validB[validB.length - 1][1], intervals: validB };
+  }
+
+  // RELAXED MODE
+  function buildRelaxedConstraints(skill) {
+    const { ktArr, upArr, forbiddenArr, usedMaxT } = sd[skill];
+    const cs = [];
+    let cumA = 0, numUps = 0;
+    for (let t = 1; t <= usedMaxT; t++) {
+      cumA += ktArr[t];
+      if (forbiddenArr[t]) {
+        if (upArr[t]) return null;
+        continue;
+      }
+      cs.push([upArr[t] ? 1 + numUps : numUps, cumA]);
+      if (upArr[t]) numUps++;
+    }
+    return cs;
+  }
+
+  function relaxedFeasible(cs, S) {
+    let M = -Infinity, m = Infinity;
+    for (const [c, A] of cs) {
+      const x = c - A * S;
+      if (x > M) M = x;
+      if (x < m) m = x;
+    }
+    if (M === -Infinity) return true;
+    return M < 1 + SOLVER_EPS && m > -1 - SOLVER_EPS && M - m < 1 + SOLVER_EPS;
+  }
+
+  function findBRangeRelaxed() {
+    let validB = [[B_LOW, B_HIGH]];
+    for (const skill of SKILLS) {
+      const { S_factor, usedMaxT } = sd[skill];
+      if (usedMaxT < 1) continue;
+      const cs = buildRelaxedConstraints(skill);
+      if (cs === null) return null;
+      if (cs.length === 0) continue;
+      const sLow = B_LOW / S_factor;
+      const sHigh = B_HIGH / S_factor;
+      const feas = S => relaxedFeasible(cs, S);
+      let midS = -1;
+      const STEPS = 400;
+      for (let i = 0; i <= STEPS; i++) {
+        const S = sLow + (sHigh - sLow) * i / STEPS;
+        if (feas(S)) { midS = S; break; }
+      }
+      if (midS < 0) return null;
+      const sLoBound = feas(sLow) ? sLow : (() => {
+        let lo = sLow, hi = midS;
+        for (let i = 0; i < 60; i++) {
+          const m = (lo + hi) / 2;
+          feas(m) ? (hi = m) : (lo = m);
+        }
+        return hi;
+      })();
+      const sHiBound = feas(sHigh) ? sHigh : (() => {
+        let lo = midS, hi = sHigh;
+        for (let i = 0; i < 60; i++) {
+          const m = (lo + hi) / 2;
+          feas(m) ? (lo = m) : (hi = m);
+        }
+        return lo;
+      })();
+      const bLo = Math.max(B_LOW, sLoBound / S_factor);
+      const bHi = Math.min(B_HIGH, sHiBound / S_factor);
+      if (bLo >= bHi) return null;
+      validB = intersectIntervalLists(validB, [[bLo, bHi]]);
+      if (!validB.length) return null;
+    }
+    return { minB: validB[0][0], maxB: validB[validB.length - 1][1], intervals: validB };
+  }
+
+  let range = findBRangeAnalytical() || findBRangeRelaxed();
+  if (!range) {
+    const maxUsed = Math.max(...SKILLS.map(s => sd[s].usedMaxT));
+    for (let t = maxUsed - 1; t >= 1; t--) {
+      for (const skill of SKILLS) {
+        if (sd[skill].usedMaxT > t) sd[skill].usedMaxT = t;
+      }
+      range = findBRangeAnalytical() || findBRangeRelaxed();
+      if (range) break;
+    }
+  }
+
+  if (!range) return { error: "No valid base training value found across all skills" };
+
+  const { minB, maxB } = range;
+
+  const results = { _baseB: { min: +minB.toFixed(6), max: +maxB.toFixed(6) } };
+  if (range.intervals.length > 1) {
+    results._baseB.intervals = range.intervals.map(([lo, hi]) => ({
+      min: +lo.toFixed(6), max: +hi.toFixed(6)
+    }));
+  }
+
+  for (const skill of SKILLS) {
+    const { startingN, S_factor, usedMaxT, possible_f, ktArr, ktArrMin, upArr, forbiddenArr } = sd[skill];
+    if (usedMaxT < 1) {
+      results[skill] = { error: `No valid data for ${skill} (age exceeds limit)` };
+      continue;
+    }
+
+    const minV0 = minB * RATIO[skill];
+    const maxV0 = maxB * RATIO[skill];
+
+    let curMin = minB * S_factor;
+    let curMax = maxB * S_factor;
+
+    let prevA = startAge;
+    let ups = 0;
+    for (let t = 1; t <= usedMaxT; t++) {
+      const ca = playerData[t].age;
+      if (ca > prevA) {
+        const factor = getCumulative(ca) / getCumulative(prevA);
+        curMin *= factor;
+        curMax *= factor;
+      }
+      prevA = ca;
+      if (playerData[t][skill] === playerData[t - 1][skill] + 1) ups++;
+    }
+
+    const powUps = Math.pow(SKILL_DECAY, ups);
+    curMin *= powUps;
+    curMax *= powUps;
+
+    const sMin = minB * S_factor;
+    const sMax = maxB * S_factor;
+
+    let loF = Infinity, hiF = -Infinity;
+    for (const f0 of possible_f) {
+      const si = analyticalSInterval(skill, f0, usedMaxT);
+      if (!si) continue;
+      const sLo = Math.max(si[0], sMin);
+      const sHi = Math.min(si[1], sMax);
+      if (sLo >= sHi) continue;
+
+      // Accumulate both max-add (a) and min-add (aMin) for final f range
+      let a = 0, aMin = 0, b = f0;
+      for (let t = 1; t <= usedMaxT; t++) {
+        if (forbiddenArr[t]) continue;
+        a += ktArr[t];
+        aMin += ktArrMin[t];
+        if (upArr[t]) b -= 1;
+      }
+
+      const lo = Math.max(0, Math.min(aMin * sLo + b, aMin * sHi + b));
+      const hi = Math.min(1, Math.max(a * sLo + b, a * sHi + b));
+
+      if (lo < loF) loF = lo;
+      if (hi > hiF) hiF = hi;
+    }
+
+    results[skill] = {
+      valueAtLevel0Min: +minV0.toFixed(6),
+      valueAtLevel0Max: +maxV0.toFixed(6),
+      levelUps: ups,
+      remainingToNextLevelMin: loF === Infinity ? null : +(1 - hiF).toFixed(6),
+      remainingToNextLevelMax: loF === Infinity ? null : +(1 - loF).toFixed(6),
+      trainingsNeeded: loF === Infinity ? null : `${skill}: ${+((1 - hiF) / curMax).toFixed(1)}-${+((1 - loF) / curMin).toFixed(1)}`,
+      usedTrainings: usedMaxT + 1,
+      totalTrainings: N,
+      currentTrainingValueMin: +curMin.toFixed(6),
+      currentTrainingValueMax: +curMax.toFixed(6),
+      minFrac: 1 - hiF,
+      maxFrac: 1 - loF,
+    };
+  }
+
+  return results;
+} */
