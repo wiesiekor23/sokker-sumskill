@@ -178,8 +178,8 @@ async function getTalentCashed(id) {
   if (id instanceof HTMLElement) return;
   const talent = await chrome.storage.local.get(`talentSenior ${id}`);
   let talentSenior = talent[`talentSenior ${id}`];
-
-
+  
+  
   const estPAC = await chrome.storage.local.get(`estimatedPAC ${id}`);
   const estDEF = await chrome.storage.local.get(`estimatedDEF ${id}`);
   const estPAS = await chrome.storage.local.get(`estimatedPAS ${id}`);
@@ -187,7 +187,7 @@ async function getTalentCashed(id) {
   const estTEC = await chrome.storage.local.get(`estimatedTEC ${id}`);
   const estPM = await chrome.storage.local.get(`estimatedPM ${id}`);
   const estGK = await chrome.storage.local.get(`estimatedGK ${id}`);
-
+  
   let estimatedPAC = estPAC[`estimatedPAC ${id}`];
   let estimatedDEF = estDEF[`estimatedDEF ${id}`];
   let estimatedPAS = estPAS[`estimatedPAS ${id}`];
@@ -195,37 +195,38 @@ async function getTalentCashed(id) {
   let estimatedTEC = estTEC[`estimatedTEC ${id}`];
   let estimatedPM = estPM[`estimatedPM ${id}`];
   let estimatedGK = estGK[`estimatedGK ${id}`];
-
-  if (estimatedDEF) return { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK };
-
+  
+  if (talentSenior) return { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK };
+  
   const playerArray = (await transformIntoArray(id)).trainingArray;
-  if (!Array.isArray(playerArray) || playerArray.length === 0) return "3.00-6.00";
-
+  if (!Array.isArray(playerArray) || playerArray.length === 0) talentSenior = "3.00-6.00";
+  
   const isYS = (await transformIntoArray(id)).playerFromYS;
-
+  
   async function postCollapsePredict(data, skill, altData) {
     let skills = await data
-
+    
     let skillV = skills[skill];
-
+    
     if (skillV === undefined) skillV = await (altData(playerArray, skill))[skill];
-
+    if (skillV === undefined) skillV = [];
+    if (skillV.length === 0) skillV.trainingsNeeded = `__`;
+    
     const usedT = await skillV.usedTrainings;
     const totalT = await skillV.totalTrainings;
-
+    
     if (usedT === totalT) {
       return skillV.trainingsNeeded;
     } else {
       skillV = await (altData(playerArray, skill))[skill];
       if (await skillV.usedTrainings === await skillV.totalTrainings) {
-        chrome.storage.local.set(`skill ${id}: [skillV.trainingsNeeded]`)
         return skillV.trainingsNeeded;
       } else {
         return `__`;
       }
     }
   }
-
+  
   async function returnTalent() {
     let talentSenior;
     const engineOne = await calculateTrainingValuesJ(playerArray);
@@ -241,11 +242,11 @@ async function getTalentCashed(id) {
     let remainingPM;
     let remainingSTR;
     let remainingGK;
-
+    
     if (isYS) {
       let talentMax = Number(talentOne.max.toFixed(2));
       let talentMin = Number(talentOne.min.toFixed(2));
-
+      
       remainingTEC = await postCollapsePredict(engineOne, `TEC`, calculateTrainingValuesForOneSkill);
       remainingPAC = await postCollapsePredict(engineOne, `PAC`, calculateTrainingValuesForOneSkill);
       remainingDEF = await postCollapsePredict(engineOne, `DEF`, calculateTrainingValuesForOneSkill);
@@ -253,7 +254,7 @@ async function getTalentCashed(id) {
       remainingPM = await postCollapsePredict(engineOne, `PM`, calculateTrainingValuesForOneSkill);
       remainingSTR = await postCollapsePredict(engineOne, `STR`, calculateTrainingValuesForOneSkill);
       remainingGK = await postCollapsePredict(engineOne, `GK`, calculateTrainingValuesForOneSkill);
-
+      
       if (talentMax <= Number(talentOld.max.toFixed(2)) && talentMin >= Number(talentOld.min.toFixed(2))) {
         talentMax = Number(talentOld.max);
         talentMin = Number(talentOld.min);
@@ -262,12 +263,12 @@ async function getTalentCashed(id) {
         talentMax = Number(talentTwo.max);
         talentMin = Number(talentTwo.min);
       }
-
+      
       talentSenior = (`${talentMax.toFixed(2)}-${talentMin.toFixed(2)}`);
-
+      
     } else {
       talentSenior = `${talentOld.max.toFixed(2)}-${talentOld.min.toFixed(2)}`;
-
+      
       remainingTEC = await postCollapsePredict(engineOld, `TEC`, calculateTrainingValuesSForOneSkill);
       remainingPAC = await postCollapsePredict(engineOld, `PAC`, calculateTrainingValuesSForOneSkill);
       remainingDEF = await postCollapsePredict(engineOld, `DEF`, calculateTrainingValuesSForOneSkill);
@@ -283,12 +284,12 @@ async function getTalentCashed(id) {
     const estimatedPM = remainingPM;
     const estimatedSTR = remainingSTR;
     const estimatedGK = remainingGK;
-
+    
     return { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK };
   }
-
+  
   ({ talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK } = await returnTalent());
-
+  
   chrome.storage.local.set({ [`talentSenior ${id}`]: talentSenior });
   chrome.storage.local.set({ [`estimatedTEC ${id}`]: estimatedTEC });
   chrome.storage.local.set({ [`estimatedDEF ${id}`]: estimatedDEF });
@@ -297,7 +298,7 @@ async function getTalentCashed(id) {
   chrome.storage.local.set({ [`estimatedPAC ${id}`]: estimatedPAC });
   chrome.storage.local.set({ [`estimatedPM ${id}`]: estimatedPM });
   chrome.storage.local.set({ [`estimatedGK ${id}`]: estimatedGK });
-
+  
   return { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK };
 }
 
@@ -473,7 +474,7 @@ const GT_MOD = 6.666667;
 async function calculateMinMax(talentEngine) {
 
   const training = talentEngine;
-  if (!training) return { "max": 2.996, "min": 6.004 };
+  if (!training) return { "max": 3.00, "min": 6.00 };
 
   // GK
   let resultMINgk;
@@ -482,7 +483,7 @@ async function calculateMinMax(talentEngine) {
   let talentGkMax;
 
   if (training.GK === undefined) {
-    resultMINgk = 0.562;
+    resultMINgk = 0.410;
     resultMAXgk = 1.125;
     talentGkMin = PASS_PM_GK_MOD / (resultMINgk / GT_MOD) * 3;
     talentGkMax = PASS_PM_GK_MOD / (resultMAXgk / GT_MOD) * 3;
@@ -502,7 +503,7 @@ async function calculateMinMax(talentEngine) {
   let remainingToNextLevelMin;
 
   if (training.TEC === undefined) {
-    resultMINtec = 0.562;
+    resultMINtec = 0.410;
     resultMAXtec = 1.125;
     talentTecMin = TECH_DEF_MOD / (resultMINtec / GT_MOD) * 3;
     talentTecMax = TECH_DEF_MOD / (resultMAXtec / GT_MOD) * 3;
@@ -522,7 +523,7 @@ async function calculateMinMax(talentEngine) {
   let talentDefMax;
 
   if (training.DEF === undefined) {
-    resultMINdef = 0.562;
+    resultMINdef = 0.410;
     resultMAXdef = 1.125;
     talentDefMin = TECH_DEF_MOD / (resultMINdef / GT_MOD) * 3;
     talentDefMax = TECH_DEF_MOD / (resultMAXdef / GT_MOD) * 3;
@@ -540,7 +541,7 @@ async function calculateMinMax(talentEngine) {
   let talentPassMax;
 
   if (training.PAS === undefined) {
-    resultMINpas = 0.562;
+    resultMINpas = 0.410;
     resultMAXpas = 1.125;
     talentPassMin = PASS_PM_GK_MOD / (resultMINpas / GT_MOD) * 3;
     talentPassMax = PASS_PM_GK_MOD / (resultMAXpas / GT_MOD) * 3;
@@ -558,7 +559,7 @@ async function calculateMinMax(talentEngine) {
   let talentPmMax;
 
   if (training.PM === undefined) {
-    resultMINpm = 0.562;
+    resultMINpm = 0.410;
     resultMAXpm = 1.125;
     talentPmMin = PASS_PM_GK_MOD / (resultMINpm / GT_MOD) * 3;
     talentPmMax = PASS_PM_GK_MOD / (resultMAXpm / GT_MOD) * 3;
@@ -576,7 +577,7 @@ async function calculateMinMax(talentEngine) {
   let talentPacMax;
 
   if (training.PAC === undefined) {
-    resultMINpac = 0.562;
+    resultMINpac = 0.410;
     resultMAXpac = 1.125;
     talentPacMin = PAC_MOD / (resultMINpac / GT_MOD) * 3;
     talentPacMax = PAC_MOD / (resultMAXpac / GT_MOD) * 3;
@@ -594,7 +595,7 @@ async function calculateMinMax(talentEngine) {
   let talentStrMax;
 
   if (training.STR === undefined) {
-    resultMINstr = 0.562;
+    resultMINstr = 0.410;
     resultMAXstr = 1.125;
     talentStrMin = STR_MOD / (resultMINstr / GT_MOD) * 3;
     talentStrMax = STR_MOD / (resultMAXstr / GT_MOD) * 3;
@@ -630,7 +631,6 @@ async function calculateMinMax(talentEngine) {
           talentMax = v;
         }
       }
-
       return talentMax;
     }
 
@@ -651,7 +651,6 @@ async function calculateMinMax(talentEngine) {
 
     return { checkMAX, checkMIN };
   }
-
 
   const min = minMaxCheck().checkMIN();
   const max = minMaxCheck().checkMAX();
@@ -2179,7 +2178,7 @@ function calculateJuniorTalent(history) {
     estimatedWeeksToNextPop = 12;
   }
 
-  const talent = slope > 0
+  let talent = slope > 0
     ? Math.max(3, Math.round((1 / slope) * 100) / 100)
     : 12;
 
@@ -2225,7 +2224,7 @@ async function getJuniorCashed(id) {
   let currentLevel;
   let talentJunior;
   let weeksToPop;
-
+  
   if (junior) return { talentJunior, weeksToPop, currentLevel } = junior;
 
   const juniorArray = await getJuniorLevels(id);
@@ -2236,6 +2235,8 @@ async function getJuniorCashed(id) {
   talentJunior = juniorTalent.talent;
   const talentMax = juniorTalent.talentMax;
   const talentMin = juniorTalent.talentMin;
+
+  console.log(talentMax, talentMin);
 
   if (talentJunior === undefined) talentJunior = `__`;
   if (currentLevel === undefined) currentLevel = `__`;
