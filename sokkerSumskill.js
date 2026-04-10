@@ -6,10 +6,13 @@ async function processRows() {
   await processData(`.table-row.is-hovered.has-border`, getSkillsDom, settings); // DOM Fetch
 
   await processData(`tr[id^="juniorRow"]`, getJuniorCashed, settings);
+
 }
 
 async function processData(selector, skillsSource, settings) {
   const elements = document.querySelectorAll(selector);
+  addPredictedPopContainer();
+
 
   for (const el of elements) {
     // Prevent double‑processing the same row
@@ -54,13 +57,14 @@ function loadSettings(el, skills, settings) {
   // Where badges should be inserted depending on page context
   if (skills === undefined) return;
 
+
   const selectors = {
     training: `.table__cell--effectiveness + .table__cell--action`,
     transfer: `.table__cell--stop, .table__cell--endDate + .table__cell--action`,
     individual: `.table__cell--eff`,
-    individualPage: `.player__wrap`,
+    individualPage: `.player__wrap > .player__details + .next_pop`,
     squad: `.table__cell--copy, .player-box-header`,
-    player: `.badge-container`,
+    player: `.player__details > * .badge-container`,
     transferSearch: `#playerCell`,
     junior: 'tr[id^="juniorRow"] > td:nth-child(6), tr[id^="juniorRow"] > * .list-inline',
   };
@@ -77,13 +81,13 @@ function loadSettings(el, skills, settings) {
     talentJunior: `Talent`,
     weeksToPop: `Weeks to Next Pop`,
     currentLevel: `Current Estimated Level`,
+    estimatedGK: `Trainings to Pop in GK`,
+    estimatedPAC: `Trainings to Pop in PAC`,
     estimatedDEF: `Trainings to Pop in DEF`,
     estimatedTEC: `Trainings to Pop in TEC`,
-    estimatedPAS: `Trainings to Pop in PAS`,
     estimatedPM: `Trainings to Pop in PM`,
+    estimatedPAS: `Trainings to Pop in PAS`,
     estimatedSTR: `Trainings to Pop in STR`,
-    estimatedPAC: `Trainings to Pop in PAC`,
-    estimatedGK: `Trainings to Pop in GK`,
   };
 
   // Loop through all skill types and all page contexts
@@ -176,27 +180,27 @@ async function calculateValue(source, fetchSkills) {
 
 async function getTalentCashed(id) {
   if (id instanceof HTMLElement) return;
-/*     const talent = await chrome.storage.local.get(`talentSenior ${id}`);
-    let talentSenior = talent[`talentSenior ${id}`];
-    
-    
-    const estPAC = await chrome.storage.local.get(`estimatedPAC ${id}`);
-    const estDEF = await chrome.storage.local.get(`estimatedDEF ${id}`);
-    const estPAS = await chrome.storage.local.get(`estimatedPAS ${id}`);
-    const estSTR = await chrome.storage.local.get(`estimatedSTR ${id}`);
-    const estTEC = await chrome.storage.local.get(`estimatedTEC ${id}`);
-    const estPM = await chrome.storage.local.get(`estimatedPM ${id}`);
-    const estGK = await chrome.storage.local.get(`estimatedGK ${id}`);
-    
-    let estimatedPAC = estPAC[`estimatedPAC ${id18}`];
-    let estimatedDEF = estDEF[`estimatedDEF ${id}`];
-    let estimatedPAS = estPAS[`estimatedPAS ${id}`];
-    let estimatedSTR = estSTR[`estimatedSTR ${id}`];
-    let estimatedTEC = estTEC[`estimatedTEC ${id}`];
-    let estimatedPM = estPM[`estimatedPM ${id}`];
-    let estimatedGK = estGK[`estimatedGK ${id}`];
-    
-    if (talentSenior) return { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK }; */
+  const talent = await chrome.storage.local.get(`talentSenior ${id}`);
+  let talentSenior = talent[`talentSenior ${id}`];
+
+
+  const estPAC = await chrome.storage.local.get(`estimatedPAC ${id}`);
+  const estDEF = await chrome.storage.local.get(`estimatedDEF ${id}`);
+  const estPAS = await chrome.storage.local.get(`estimatedPAS ${id}`);
+  const estSTR = await chrome.storage.local.get(`estimatedSTR ${id}`);
+  const estTEC = await chrome.storage.local.get(`estimatedTEC ${id}`);
+  const estPM = await chrome.storage.local.get(`estimatedPM ${id}`);
+  const estGK = await chrome.storage.local.get(`estimatedGK ${id}`);
+
+  let estimatedPAC = estPAC[`estimatedPAC ${id}`];
+  let estimatedDEF = estDEF[`estimatedDEF ${id}`];
+  let estimatedPAS = estPAS[`estimatedPAS ${id}`];
+  let estimatedSTR = estSTR[`estimatedSTR ${id}`];
+  let estimatedTEC = estTEC[`estimatedTEC ${id}`];
+  let estimatedPM = estPM[`estimatedPM ${id}`];
+  let estimatedGK = estGK[`estimatedGK ${id}`];
+
+  if (talentSenior) return { talentSenior, estimatedTEC, estimatedPAC, estimatedDEF, estimatedPAS, estimatedPM, estimatedSTR, estimatedGK };
 
   const playerArray = (await transformIntoArray(id)).trainingArray;
   if (!Array.isArray(playerArray) || playerArray.length === 0) talentSenior = "3.00-6.00";
@@ -362,6 +366,16 @@ const observer = new MutationObserver(() => {
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
+
+function addPredictedPopContainer() {
+  if (!document.querySelector('.player__wrap')) return;
+  if (document.querySelector(`.next_pop`)) return;
+
+  const addTo = document.querySelector(`.player__wrap`);
+  const pPopCont = document.createElement(`div`);
+  pPopCont.classList.add(`next_pop`);
+  addTo.appendChild(pPopCont);
+}
 
 function addContainer() {
   const sumskillContainer = document.querySelector(".panel-default + .panel-default");
