@@ -99,24 +99,29 @@
     font-size: 11px;
 }
 
-tr[id^="juniorRow"]>td:nth-child(6) {
+tr[id^="juniorRow"]>td:nth-child(6),
+td:nth-child(5) > * a[href^="juniors/action/Promote/juniorID/"] {
     display: flex;
 }
 
-tr[id^="juniorRow"]>td:nth-child(6)>.badge.talentJunior {
+tr[id^="juniorRow"]>td:nth-child(6)>.badge.talentJunior,
+tr[id^="juniorRow"] > * .list-inline>.badge.talentJunior {
     margin-left: 32px;
     background-color: #2ECC71;
 }
 
-tr[id^="juniorRow"]>td:nth-child(6)>.badge.weeksToPop {
+tr[id^="juniorRow"]>td:nth-child(6)>.badge.weeksToPop,
+tr[id^="juniorRow"] > * .list-inline>.badge.weeksToPop {
     background-color: #00BCD4;
 }
 
-tr[id^="juniorRow"]>td:nth-child(6)>.badge.currentLevel {
+tr[id^="juniorRow"]>td:nth-child(6)>.badge.currentLevel,
+tr[id^="juniorRow"] > * .list-inline>.badge.currentLevel {
     background-color: #00E5FF;
 }
 
-tr[id^="juniorRow"]>td:nth-child(6)>.badge {
+tr[id^="juniorRow"]>td:nth-child(6)>.badge,
+tr[id^="juniorRow"] > * .list-inline>.badge {
     margin: 3px;
     min-width: 50px;
     font-size: 14px;
